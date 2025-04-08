@@ -38,3 +38,7 @@ curl -X POST http://localhost:3000/task \
 #this one deletes the db
 ```
 
+7. **Privilege escalation**
+```bash
+curl http://localhost:3000/escalate
+```
