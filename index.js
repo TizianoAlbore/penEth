@@ -70,14 +70,11 @@ app.post('/task', (req, res) => {
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
 /*
-  Endpoint vulnerabile per la privilege escalation.
-  Quando questo endpoint viene invocato, l'applicazione crea un nuovo container in modalità privilegiata.
-  Un attaccante può sfruttare questa vulnerabilità per ottenere un accesso più elevato al sistema host.
+  Quando questo endpoint viene invocato, l'applicazione crea un nuovo container in modalità privilegiata per ottenere un accesso più elevato al sistema host.
 */
 app.get('/escalate', async (req, res) => {
   try {
-    // Crea un container vulnerabile: in questo esempio utilizziamo l'immagine node:14,
-    // ma si potrebbe scegliere un’immagine con shell o altri strumenti d’attacco.
+    // esempio di creazione container vulnerabile
     const container = await docker.createContainer({
       Image: 'node:14',
       Cmd: ['sh', '-c', 'sleep 600'], // Il container resterà in esecuzione per 10 minuti
