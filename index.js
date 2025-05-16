@@ -11,6 +11,8 @@ app.use(bodyParser.json());
 // ----------------------------------------------------
 // 1. Prototype Pollution
 // ----------------------------------------------------
+
+// QUI DEVE AVVENIRE IL CAMBIO DI PERMESSI
 app.get('/check', (req, res) => {
   res.json({ admin: {}.admin });
 });
@@ -25,12 +27,21 @@ app.post('/pollute', (req, res) => {
 // ----------------------------------------------------
 // 2. SSRF Vulnerabile
 // ----------------------------------------------------
+
+/* QUI SOLO GLI ADMIN POSSONO FARE curl "http://localhost:3000/ssrf?url=http://example.com"
+  -> Abuso via SSRF per invocare Redis:
+    curl "http://localhost:3000/ssrf?url=http://localhost:3000/task" \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"command":"PING", "args":[]}'
+*/
 app.get('/ssrf', async (req, res) => {
   const target = req.query.url;
   if (!target) {
     return res.status(400).json({ error: "Parametro 'url' mancante" });
   }
   try {
+    // SE L'URL VIENE INSERITO CORRETTAMENTE, CI INDIRIZZA LI'
+    // L'IDEA E' DI CHIAMARE /TASK CON BODY CONTENENTE I COMANDI DA FAR ESEGUIRE A REDIS
     const response = await axios.get(target);
     res.json({ data: response.data });
   } catch (err) {
@@ -41,6 +52,10 @@ app.get('/ssrf', async (req, res) => {
 // ----------------------------------------------------
 // 3. Attacco a Redis e Distribuzione di Task
 // ----------------------------------------------------
+
+// FUNZIONE CHE CHIAMA REDIS
+// DOVREBBE ESSERE FATTA ESCLUSIVAMENTE DAL SERVER, MA VERRA' CHIAMATA
+// IN MANIERA FRAUDOLENTA TRAMITE ENDPOINT /SSRF
 const redisClient = redis.createClient({
   host: process.env.REDIS_HOST || 'redis',
   port: 6379
@@ -50,6 +65,8 @@ redisClient.on('error', (err) => {
   console.error('Errore di connessione a Redis:', err);
 });
 
+// QUESTO ENDPOINT RICHIEDE NEL CORPO DELLA POST DEI COMANDI DA FAR ESEGUIRE A REDIS
+// NOTA CHE NON CI SONO CONTROLLI MA DOVREBBE ESSERE NON ACCESSIBILE A TUTTI
 app.post('/task', (req, res) => {
   const { command, args } = req.body;
   if (!command || !Array.isArray(args)) {
