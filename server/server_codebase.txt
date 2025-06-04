@@ -1,0 +1,1706 @@
+
+[.env]
+```
+DATABASE=mongodb://127.0.0.1:27017/ecommerce
+PORT=8000
+BRAINTREE_MERCHANT_ID=n74dc2kw9g3ws389
+BRAINTREE_PUBLIC_KEY=bgytmgzhz5f6t2tg
+BRAINTREE_PRIVATE_KEY=e6f226166da99d874f00008f0bba14fe
+```
+
+
+[config/function.js]
+```
+/* This all of are helper function */
+const userModel = require("../models/users");
+
+exports.toTitleCase = function (str) {
+  return str.replace(/\w\S*/g, function (txt) {
+    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+  });
+};
+
+exports.validateEmail = function (mail) {
+  if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(mail)) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
+exports.emailCheckInDatabase = async function (email) {
+  let user = await userModel.findOne({ email: email });
+  user.exec((err, data) => {
+    if (!data) {
+      return false;
+    } else {
+      return true;
+    }
+  });
+};
+
+exports.phoneNumberCheckInDatabase = async function (phoneNumber) {
+  let user = await userModel.findOne({ phoneNumber: phoneNumber });
+  user.exec((err, data) => {
+    if (data) {
+      return true;
+    } else {
+      return false;
+    }
+  });
+};
+```
+
+
+[config/keys.js]
+```
+module.exports = {
+  JWT_SECRET: "SecretKey",
+};
+```
+
+
+[config/db.js]
+```
+const mongoose = require("mongoose");
+try {
+  mongoose.connect("mongodb://localhost:27017/Ecommerce", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useCreateIndex: true,
+  });
+  console.log("Database Connected Successfully");
+} catch (err) {
+  console.log("Database Not Connected");
+}
+```
+
+
+[config/uploadFolderCreateScript.js]
+```
+const fs = require("fs");
+
+const categoriesFolder = "./public/uploads/categories";
+const customizeFolder = "./public/uploads/customize";
+const productsFolder = "./public/uploads/products";
+
+const CreateAllFolder = () => {
+  if (!fs.existsSync(categoriesFolder)) {
+    fs.mkdirSync(categoriesFolder, {
+      recursive: true,
+    });
+  }
+
+  if (!fs.existsSync(customizeFolder)) {
+    fs.mkdirSync(customizeFolder, {
+      recursive: true,
+    });
+  }
+
+  if (!fs.existsSync(productsFolder)) {
+    fs.mkdirSync(productsFolder, {
+      recursive: true,
+    });
+  }
+};
+
+module.exports = CreateAllFolder;
+```
+
+
+[Dockerfile]
+```
+# server/Dockerfile
+FROM node:20-slim
+
+WORKDIR /usr/src/app
+ENV TZ=Europe/Rome \
+    NODE_ENV=production \
+    PORT=8000
+
+#  Solo i manifest - install dipendenze
+COPY package.json ./
+RUN npm install 
+
+COPY /config ./config
+COPY /controller ./controller
+COPY /middleware ./middleware
+COPY /models ./models
+COPY /routes ./routes
+COPY ./app.js ./
+COPY ./.env ./.env 
+
+
+EXPOSE 8000
+CMD ["npm", "run", "start:dev"]
+```
+
+
+[models/orders.js]
+```
+const mongoose = require("mongoose");
+const { ObjectId } = mongoose.Schema.Types;
+
+const orderSchema = new mongoose.Schema(
+  {
+    allProduct: [
+      {
+        id: { type: ObjectId, ref: "products" },
+        quantitiy: Number,
+      },
+    ],
+    user: {
+      type: ObjectId,
+      ref: "users",
+      required: true,
+    },
+    amount: {
+      type: Number,
+      required: true,
+    },
+    transactionId: {
+      type: String,
+      required: true,
+    },
+    address: {
+      type: String,
+      required: true,
+    },
+    phone: {
+      type: Number,
+      required: true,
+    },
+    status: {
+      type: String,
+      default: "Not processed",
+      enum: [
+        "Not processed",
+        "Processing",
+        "Shipped",
+        "Delivered",
+        "Cancelled",
+      ],
+    },
+  },
+  { timestamps: true }
+);
+
+const orderModel = mongoose.model("orders", orderSchema);
+module.exports = orderModel;
+```
+
+
+[models/users.js]
+```
+const mongoose = require("mongoose");
+
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      maxlength: 32,
+    },
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      index: { unique: true },
+      match: /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    userRole: {
+      type: Number,
+      required: true,
+    },
+    phoneNumber: {
+      type: Number,
+    },
+    userImage: {
+      type: String,
+      default: "user.png",
+    },
+    verified: {
+      type: String,
+      default: false,
+    },
+    secretKey: {
+      type: String,
+      default: null,
+    },
+    history: {
+      type: Array,
+      default: [],
+    },
+  },
+  { timestamps: true }
+);
+
+const userModel = mongoose.model("users", userSchema);
+module.exports = userModel;
+```
+
+
+[models/categories.js]
+```
+const mongoose = require("mongoose");
+
+const categorySchema = new mongoose.Schema(
+  {
+    cName: {
+      type: String,
+      required: true,
+    },
+    cDescription: {
+      type: String,
+      required: true,
+    },
+    cImage: {
+      type: String,
+    },
+    cStatus: {
+      type: String,
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
+
+const categoryModel = mongoose.model("categories", categorySchema);
+module.exports = categoryModel;
+```
+
+
+[models/products.js]
+```
+const mongoose = require("mongoose");
+const { ObjectId } = mongoose.Schema.Types;
+
+const productSchema = new mongoose.Schema(
+  {
+    pName: {
+      type: String,
+      required: true,
+    },
+    pDescription: {
+      type: String,
+      required: true,
+    },
+    pPrice: {
+      type: Number,
+      required: true,
+    },
+    pSold: {
+      type: Number,
+      default: 0,
+    },
+    pQuantity: {
+      type: Number,
+      default: 0,
+    },
+    pCategory: {
+      type: ObjectId,
+      ref: "categories",
+    },
+    pImages: {
+      type: Array,
+      required: true,
+    },
+    pOffer: {
+      type: String,
+      default: null,
+    },
+    pRatingsReviews: [
+      {
+        review: String,
+        user: { type: ObjectId, ref: "users" },
+        rating: String,
+        createdAt: {
+          type: Date,
+          default: Date.now(),
+        },
+      },
+    ],
+    pStatus: {
+      type: String,
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
+
+const productModel = mongoose.model("products", productSchema);
+module.exports = productModel;
+```
+
+
+[models/customize.js]
+```
+const mongoose = require("mongoose");
+
+const customizeSchema = new mongoose.Schema(
+  {
+    slideImage: {
+      type: String,
+    },
+    firstShow: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { timestamps: true }
+);
+
+const customizeModel = mongoose.model("customizes", customizeSchema);
+module.exports = customizeModel;
+```
+
+
+[routes/orders.js]
+```
+const express = require("express");
+const router = express.Router();
+const ordersController = require("../controller/orders");
+
+router.get("/get-all-orders", ordersController.getAllOrders);
+router.post("/order-by-user", ordersController.getOrderByUser);
+
+router.post("/create-order", ordersController.postCreateOrder);
+router.post("/update-order", ordersController.postUpdateOrder);
+router.post("/delete-order", ordersController.postDeleteOrder);
+
+module.exports = router;
+```
+
+
+[routes/users.js]
+```
+const express = require("express");
+const router = express.Router();
+const usersController = require("../controller/users");
+
+router.get("/all-user", usersController.getAllUser);
+router.post("/signle-user", usersController.getSingleUser);
+
+router.post("/add-user", usersController.postAddUser);
+router.post("/edit-user", usersController.postEditUser);
+router.post("/delete-user", usersController.getDeleteUser);
+
+router.post("/change-password", usersController.changePassword);
+
+module.exports = router;
+```
+
+
+[routes/categories.js]
+```
+const express = require("express");
+const router = express.Router();
+const categoryController = require("../controller/categories");
+const multer = require("multer");
+const { loginCheck } = require("../middleware/auth");
+
+// Image Upload setting
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./public/uploads/categories");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "_" + file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
+
+router.get("/all-category", categoryController.getAllCategory);
+router.post(
+  "/add-category",
+  loginCheck,
+  upload.single("cImage"),
+  categoryController.postAddCategory
+);
+router.post("/edit-category", loginCheck, categoryController.postEditCategory);
+router.post(
+  "/delete-category",
+  loginCheck,
+  categoryController.getDeleteCategory
+);
+
+module.exports = router;
+```
+
+
+[routes/products.js]
+```
+const express = require("express");
+const router = express.Router();
+const productController = require("../controller/products");
+const multer = require("multer");
+
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "public/uploads/products");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "_" + file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
+
+router.get("/all-product", productController.getAllProduct);
+router.post("/product-by-category", productController.getProductByCategory);
+router.post("/product-by-price", productController.getProductByPrice);
+router.post("/wish-product", productController.getWishProduct);
+router.post("/cart-product", productController.getCartProduct);
+
+router.post("/add-product", upload.any(), productController.postAddProduct);
+router.post("/edit-product", upload.any(), productController.postEditProduct);
+router.post("/delete-product", productController.getDeleteProduct);
+router.post("/single-product", productController.getSingleProduct);
+
+router.post("/add-review", productController.postAddReview);
+router.post("/delete-review", productController.deleteReview);
+
+module.exports = router;
+```
+
+
+[routes/customize.js]
+```
+const express = require("express");
+const router = express.Router();
+const customizeController = require("../controller/customize");
+const multer = require("multer");
+
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "public/uploads/customize");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "_" + file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
+
+router.get("/get-slide-image", customizeController.getImages);
+router.post("/delete-slide-image", customizeController.deleteSlideImage);
+router.post(
+  "/upload-slide-image",
+  upload.single("image"),
+  customizeController.uploadSlideImage
+);
+router.post("/dashboard-data", customizeController.getAllData);
+
+module.exports = router;
+```
+
+
+[routes/braintree.js]
+```
+const express = require("express");
+const router = express.Router();
+const brainTreeController = require("../controller/braintree");
+
+router.post("/braintree/get-token", brainTreeController.ganerateToken);
+router.post("/braintree/payment", brainTreeController.paymentProcess);
+
+module.exports = router;
+```
+
+
+[routes/auth.js]
+```
+const express = require("express");
+const router = express.Router();
+const authController = require("../controller/auth");
+const { loginCheck, isAuth, isAdmin } = require("../middleware/auth");
+
+router.post("/isadmin", authController.isAdmin);
+router.post("/signup", authController.postSignup);
+router.post("/signin", authController.postSignin);
+router.post("/user", loginCheck, isAuth, isAdmin, authController.allUser);
+
+module.exports = router;
+```
+
+
+[package.json]
+```
+{
+  "name": "Hayroo",
+  "version": "1.0.0",
+  "description": "A E-commerce website.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:dev": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hasan-py/MERN_Stack_Project_Hayroo_Ecommerce"
+  },
+  "author": "Hasan | https://hasan-py.github.io",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hasan-py/MERN_Stack_Project_Hayroo_Ecommerce/issues"
+  },
+  "homepage": "https://github.com/hasan-py/MERN_Stack_Project_Hayroo_Ecommerce#readme",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "braintree": "^3.0.0",
+    "cookie-parser": "^1.4.5",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "i": "^0.3.6",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.9.27",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.2",
+    "nodemon": "^2.0.4",
+    "npm": "^6.14.8"
+  }
+}
+```
+
+
+[middleware/auth.js]
+```
+const jwt = require("jsonwebtoken");
+const { JWT_SECRET } = require("../config/keys");
+const userModel = require("../models/users");
+
+exports.loginCheck = (req, res, next) => {
+  try {
+    let token = req.headers.token;
+    token = token.replace("Bearer ", "");
+    decode = jwt.verify(token, JWT_SECRET);
+    req.userDetails = decode;
+    next();
+  } catch (err) {
+    res.json({
+      error: "You must be logged in",
+    });
+  }
+};
+
+exports.isAuth = (req, res, next) => {
+  let { loggedInUserId } = req.body;
+  if (
+    !loggedInUserId ||
+    !req.userDetails._id ||
+    loggedInUserId != req.userDetails._id
+  ) {
+    res.status(403).json({ error: "You are not authenticate" });
+  }
+  next();
+};
+
+exports.isAdmin = async (req, res, next) => {
+  try {
+    let reqUser = await userModel.findById(req.body.loggedInUserId);
+    // If user role 0 that's mean not admin it's customer
+    if (reqUser.userRole === 0) {
+      res.status(403).json({ error: "Access denied" });
+    }
+    next();
+  } catch {
+    res.status(404);
+  }
+};
+```
+
+
+[.dockerignore]
+```
+node_modules
+public/uploads```
+
+
+[app.js]
+```
+/* 
+
+================== Most Important ==================
+* Issue 1 :
+In uploads folder you need create 3 folder like bellow.
+Folder structure will be like: 
+public -> uploads -> 1. products 2. customize 3. categories
+*** Now This folder will automatically create when we run the server file
+
+* Issue 2:
+For admin signup just go to the auth 
+controller then newUser obj, you will 
+find a role field. role:1 for admin signup & 
+role: 0 or by default it for customer signup.
+go user model and see the role field.
+
+*/
+
+const express = require("express");
+const app = express();
+require("dotenv").config();
+const mongoose = require("mongoose");
+const morgan = require("morgan");
+const cookieParser = require("cookie-parser");
+const cors = require("cors");
+
+// Import Router
+const authRouter = require("./routes/auth");
+const categoryRouter = require("./routes/categories");
+const productRouter = require("./routes/products");
+const brainTreeRouter = require("./routes/braintree");
+const orderRouter = require("./routes/orders");
+const usersRouter = require("./routes/users");
+const customizeRouter = require("./routes/customize");
+// Import Auth middleware for check user login or not~
+const { loginCheck } = require("./middleware/auth");
+const CreateAllFolder = require("./config/uploadFolderCreateScript");
+
+/* Create All Uploads Folder if not exists | For Uploading Images */
+CreateAllFolder();
+
+// Database Connection
+mongoose
+  .connect(process.env.DATABASE, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useCreateIndex: true,
+  })
+  .then(() =>
+    console.log(
+      "==============Mongodb Database Connected Successfully=============="
+    )
+  )
+  .catch((err) => console.log("Database Not Connected !!!"));
+
+// Middleware
+app.use(morgan("dev"));
+app.use(cookieParser());
+app.use(cors());
+app.use(express.static("public"));
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+
+// Routes
+app.use("/api", authRouter);
+app.use("/api/user", usersRouter);
+app.use("/api/category", categoryRouter);
+app.use("/api/product", productRouter);
+app.use("/api", brainTreeRouter);
+app.use("/api/order", orderRouter);
+app.use("/api/customize", customizeRouter);
+
+// Run Server
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () => {
+  console.log("Server is running on ", PORT);
+});
+```
+
+
+[controller/orders.js]
+```
+const orderModel = require("../models/orders");
+
+class Order {
+  async getAllOrders(req, res) {
+    try {
+      let Orders = await orderModel
+        .find({})
+        .populate("allProduct.id", "pName pImages pPrice")
+        .populate("user", "name email")
+        .sort({ _id: -1 });
+      if (Orders) {
+        return res.json({ Orders });
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async getOrderByUser(req, res) {
+    let { uId } = req.body;
+    if (!uId) {
+      return res.json({ message: "All filled must be required" });
+    } else {
+      try {
+        let Order = await orderModel
+          .find({ user: uId })
+          .populate("allProduct.id", "pName pImages pPrice")
+          .populate("user", "name email")
+          .sort({ _id: -1 });
+        if (Order) {
+          return res.json({ Order });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+
+  async postCreateOrder(req, res) {
+    let { allProduct, user, amount, transactionId, address, phone } = req.body;
+    if (
+      !allProduct ||
+      !user ||
+      !amount ||
+      !transactionId ||
+      !address ||
+      !phone
+    ) {
+      return res.json({ message: "All filled must be required" });
+    } else {
+      try {
+        let newOrder = new orderModel({
+          allProduct,
+          user,
+          amount,
+          transactionId,
+          address,
+          phone,
+        });
+        let save = await newOrder.save();
+        if (save) {
+          return res.json({ success: "Order created successfully" });
+        }
+      } catch (err) {
+        return res.json({ error: error });
+      }
+    }
+  }
+
+  async postUpdateOrder(req, res) {
+    let { oId, status } = req.body;
+    if (!oId || !status) {
+      return res.json({ message: "All filled must be required" });
+    } else {
+      let currentOrder = orderModel.findByIdAndUpdate(oId, {
+        status: status,
+        updatedAt: Date.now(),
+      });
+      currentOrder.exec((err, result) => {
+        if (err) console.log(err);
+        return res.json({ success: "Order updated successfully" });
+      });
+    }
+  }
+
+  async postDeleteOrder(req, res) {
+    let { oId } = req.body;
+    if (!oId) {
+      return res.json({ error: "All filled must be required" });
+    } else {
+      try {
+        let deleteOrder = await orderModel.findByIdAndDelete(oId);
+        if (deleteOrder) {
+          return res.json({ success: "Order deleted successfully" });
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  }
+}
+
+const ordersController = new Order();
+module.exports = ordersController;
+```
+
+
+[controller/users.js]
+```
+const userModel = require("../models/users");
+const bcrypt = require("bcryptjs");
+
+class User {
+  async getAllUser(req, res) {
+    try {
+      let Users = await userModel
+        .find({})
+        .populate("allProduct.id", "pName pImages pPrice")
+        .populate("user", "name email")
+        .sort({ _id: -1 });
+      if (Users) {
+        return res.json({ Users });
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async getSingleUser(req, res) {
+    let { uId } = req.body;
+    if (!uId) {
+      return res.json({ error: "All filled must be required" });
+    } else {
+      try {
+        let User = await userModel
+          .findById(uId)
+          .select("name email phoneNumber userImage updatedAt createdAt");
+        if (User) {
+          return res.json({ User });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+
+  async postAddUser(req, res) {
+    let { allProduct, user, amount, transactionId, address, phone } = req.body;
+    if (
+      !allProduct ||
+      !user ||
+      !amount ||
+      !transactionId ||
+      !address ||
+      !phone
+    ) {
+      return res.json({ message: "All filled must be required" });
+    } else {
+      try {
+        let newUser = new userModel({
+          allProduct,
+          user,
+          amount,
+          transactionId,
+          address,
+          phone,
+        });
+        let save = await newUser.save();
+        if (save) {
+          return res.json({ success: "User created successfully" });
+        }
+      } catch (err) {
+        return res.json({ error: error });
+      }
+    }
+  }
+
+  async postEditUser(req, res) {
+    let { uId, name, phoneNumber } = req.body;
+    if (!uId || !name || !phoneNumber) {
+      return res.json({ message: "All filled must be required" });
+    } else {
+      let currentUser = userModel.findByIdAndUpdate(uId, {
+        name: name,
+        phoneNumber: phoneNumber,
+        updatedAt: Date.now(),
+      });
+      currentUser.exec((err, result) => {
+        if (err) console.log(err);
+        return res.json({ success: "User updated successfully" });
+      });
+    }
+  }
+
+  async getDeleteUser(req, res) {
+    let { oId, status } = req.body;
+    if (!oId || !status) {
+      return res.json({ message: "All filled must be required" });
+    } else {
+      let currentUser = userModel.findByIdAndUpdate(oId, {
+        status: status,
+        updatedAt: Date.now(),
+      });
+      currentUser.exec((err, result) => {
+        if (err) console.log(err);
+        return res.json({ success: "User updated successfully" });
+      });
+    }
+  }
+
+  async changePassword(req, res) {
+    let { uId, oldPassword, newPassword } = req.body;
+    if (!uId || !oldPassword || !newPassword) {
+      return res.json({ message: "All filled must be required" });
+    } else {
+      const data = await userModel.findOne({ _id: uId });
+      if (!data) {
+        return res.json({
+          error: "Invalid user",
+        });
+      } else {
+        const oldPassCheck = await bcrypt.compare(oldPassword, data.password);
+        if (oldPassCheck) {
+          newPassword = bcrypt.hashSync(newPassword, 10);
+          let passChange = userModel.findByIdAndUpdate(uId, {
+            password: newPassword,
+          });
+          passChange.exec((err, result) => {
+            if (err) console.log(err);
+            return res.json({ success: "Password updated successfully" });
+          });
+        } else {
+          return res.json({
+            error: "Your old password is wrong!!",
+          });
+        }
+      }
+    }
+  }
+}
+
+const ordersController = new User();
+module.exports = ordersController;
+```
+
+
+[controller/categories.js]
+```
+const { toTitleCase } = require("../config/function");
+const categoryModel = require("../models/categories");
+const fs = require("fs");
+
+class Category {
+  async getAllCategory(req, res) {
+    try {
+      let Categories = await categoryModel.find({}).sort({ _id: -1 });
+      if (Categories) {
+        return res.json({ Categories });
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async postAddCategory(req, res) {
+    let { cName, cDescription, cStatus } = req.body;
+    let cImage = req.file.filename;
+    const filePath = `../server/public/uploads/categories/${cImage}`;
+
+    if (!cName || !cDescription || !cStatus || !cImage) {
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.log(err);
+        }
+        return res.json({ error: "All filled must be required" });
+      });
+    } else {
+      cName = toTitleCase(cName);
+      try {
+        let checkCategoryExists = await categoryModel.findOne({ cName: cName });
+        if (checkCategoryExists) {
+          fs.unlink(filePath, (err) => {
+            if (err) {
+              console.log(err);
+            }
+            return res.json({ error: "Category already exists" });
+          });
+        } else {
+          let newCategory = new categoryModel({
+            cName,
+            cDescription,
+            cStatus,
+            cImage,
+          });
+          await newCategory.save((err) => {
+            if (!err) {
+              return res.json({ success: "Category created successfully" });
+            }
+          });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+
+  async postEditCategory(req, res) {
+    let { cId, cDescription, cStatus } = req.body;
+    if (!cId || !cDescription || !cStatus) {
+      return res.json({ error: "All filled must be required" });
+    }
+    try {
+      let editCategory = categoryModel.findByIdAndUpdate(cId, {
+        cDescription,
+        cStatus,
+        updatedAt: Date.now(),
+      });
+      let edit = await editCategory.exec();
+      if (edit) {
+        return res.json({ success: "Category edit successfully" });
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async getDeleteCategory(req, res) {
+    let { cId } = req.body;
+    if (!cId) {
+      return res.json({ error: "All filled must be required" });
+    } else {
+      try {
+        let deletedCategoryFile = await categoryModel.findById(cId);
+        const filePath = `../server/public/uploads/categories/${deletedCategoryFile.cImage}`;
+
+        let deleteCategory = await categoryModel.findByIdAndDelete(cId);
+        if (deleteCategory) {
+          // Delete Image from uploads -> categories folder 
+          fs.unlink(filePath, (err) => {
+            if (err) {
+              console.log(err);
+            }
+            return res.json({ success: "Category deleted successfully" });
+          });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+}
+
+const categoryController = new Category();
+module.exports = categoryController;
+```
+
+
+[controller/products.js]
+```
+const productModel = require("../models/products");
+const fs = require("fs");
+const path = require("path");
+
+class Product {
+  // Delete Image from uploads -> products folder
+  static deleteImages(images, mode) {
+    var basePath =
+      path.resolve(__dirname + "../../") + "/public/uploads/products/";
+    console.log(basePath);
+    for (var i = 0; i < images.length; i++) {
+      let filePath = "";
+      if (mode == "file") {
+        filePath = basePath + `${images[i].filename}`;
+      } else {
+        filePath = basePath + `${images[i]}`;
+      }
+      console.log(filePath);
+      if (fs.existsSync(filePath)) {
+        console.log("Exists image");
+      }
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          return err;
+        }
+      });
+    }
+  }
+
+  async getAllProduct(req, res) {
+    try {
+      let Products = await productModel
+        .find({})
+        .populate("pCategory", "_id cName")
+        .sort({ _id: -1 });
+      if (Products) {
+        return res.json({ Products });
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async postAddProduct(req, res) {
+    let { pName, pDescription, pPrice, pQuantity, pCategory, pOffer, pStatus } =
+      req.body;
+    let images = req.files;
+    // Validation
+    if (
+      !pName |
+      !pDescription |
+      !pPrice |
+      !pQuantity |
+      !pCategory |
+      !pOffer |
+      !pStatus
+    ) {
+      Product.deleteImages(images, "file");
+      return res.json({ error: "All filled must be required" });
+    }
+    // Validate Name and description
+    else if (pName.length > 255 || pDescription.length > 3000) {
+      Product.deleteImages(images, "file");
+      return res.json({
+        error: "Name 255 & Description must not be 3000 charecter long",
+      });
+    }
+    // Validate Images
+    else if (images.length !== 2) {
+      Product.deleteImages(images, "file");
+      return res.json({ error: "Must need to provide 2 images" });
+    } else {
+      try {
+        let allImages = [];
+        for (const img of images) {
+          allImages.push(img.filename);
+        }
+        let newProduct = new productModel({
+          pImages: allImages,
+          pName,
+          pDescription,
+          pPrice,
+          pQuantity,
+          pCategory,
+          pOffer,
+          pStatus,
+        });
+        let save = await newProduct.save();
+        if (save) {
+          return res.json({ success: "Product created successfully" });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+
+  async postEditProduct(req, res) {
+    let {
+      pId,
+      pName,
+      pDescription,
+      pPrice,
+      pQuantity,
+      pCategory,
+      pOffer,
+      pStatus,
+      pImages,
+    } = req.body;
+    let editImages = req.files;
+
+    // Validate other fileds
+    if (
+      !pId |
+      !pName |
+      !pDescription |
+      !pPrice |
+      !pQuantity |
+      !pCategory |
+      !pOffer |
+      !pStatus
+    ) {
+      return res.json({ error: "All filled must be required" });
+    }
+    // Validate Name and description
+    else if (pName.length > 255 || pDescription.length > 3000) {
+      return res.json({
+        error: "Name 255 & Description must not be 3000 charecter long",
+      });
+    }
+    // Validate Update Images
+    else if (editImages && editImages.length == 1) {
+      Product.deleteImages(editImages, "file");
+      return res.json({ error: "Must need to provide 2 images" });
+    } else {
+      let editData = {
+        pName,
+        pDescription,
+        pPrice,
+        pQuantity,
+        pCategory,
+        pOffer,
+        pStatus,
+      };
+      if (editImages.length == 2) {
+        let allEditImages = [];
+        for (const img of editImages) {
+          allEditImages.push(img.filename);
+        }
+        editData = { ...editData, pImages: allEditImages };
+        Product.deleteImages(pImages.split(","), "string");
+      }
+      try {
+        let editProduct = productModel.findByIdAndUpdate(pId, editData);
+        editProduct.exec((err) => {
+          if (err) console.log(err);
+          return res.json({ success: "Product edit successfully" });
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+
+  async getDeleteProduct(req, res) {
+    let { pId } = req.body;
+    if (!pId) {
+      return res.json({ error: "All filled must be required" });
+    } else {
+      try {
+        let deleteProductObj = await productModel.findById(pId);
+        let deleteProduct = await productModel.findByIdAndDelete(pId);
+        if (deleteProduct) {
+          // Delete Image from uploads -> products folder
+          Product.deleteImages(deleteProductObj.pImages, "string");
+          return res.json({ success: "Product deleted successfully" });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+
+  async getSingleProduct(req, res) {
+    let { pId } = req.body;
+    if (!pId) {
+      return res.json({ error: "All filled must be required" });
+    } else {
+      try {
+        let singleProduct = await productModel
+          .findById(pId)
+          .populate("pCategory", "cName")
+          .populate("pRatingsReviews.user", "name email userImage");
+        if (singleProduct) {
+          return res.json({ Product: singleProduct });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+
+  async getProductByCategory(req, res) {
+    let { catId } = req.body;
+    if (!catId) {
+      return res.json({ error: "All filled must be required" });
+    } else {
+      try {
+        let products = await productModel
+          .find({ pCategory: catId })
+          .populate("pCategory", "cName");
+        if (products) {
+          return res.json({ Products: products });
+        }
+      } catch (err) {
+        return res.json({ error: "Search product wrong" });
+      }
+    }
+  }
+
+  async getProductByPrice(req, res) {
+    let { price } = req.body;
+    if (!price) {
+      return res.json({ error: "All filled must be required" });
+    } else {
+      try {
+        let products = await productModel
+          .find({ pPrice: { $lt: price } })
+          .populate("pCategory", "cName")
+          .sort({ pPrice: -1 });
+        if (products) {
+          return res.json({ Products: products });
+        }
+      } catch (err) {
+        return res.json({ error: "Filter product wrong" });
+      }
+    }
+  }
+
+  async getWishProduct(req, res) {
+    let { productArray } = req.body;
+    if (!productArray) {
+      return res.json({ error: "All filled must be required" });
+    } else {
+      try {
+        let wishProducts = await productModel.find({
+          _id: { $in: productArray },
+        });
+        if (wishProducts) {
+          return res.json({ Products: wishProducts });
+        }
+      } catch (err) {
+        return res.json({ error: "Filter product wrong" });
+      }
+    }
+  }
+
+  async getCartProduct(req, res) {
+    let { productArray } = req.body;
+    if (!productArray) {
+      return res.json({ error: "All filled must be required" });
+    } else {
+      try {
+        let cartProducts = await productModel.find({
+          _id: { $in: productArray },
+        });
+        if (cartProducts) {
+          return res.json({ Products: cartProducts });
+        }
+      } catch (err) {
+        return res.json({ error: "Cart product wrong" });
+      }
+    }
+  }
+
+  async postAddReview(req, res) {
+    let { pId, uId, rating, review } = req.body;
+    if (!pId || !rating || !review || !uId) {
+      return res.json({ error: "All filled must be required" });
+    } else {
+      let checkReviewRatingExists = await productModel.findOne({ _id: pId });
+      if (checkReviewRatingExists.pRatingsReviews.length > 0) {
+        checkReviewRatingExists.pRatingsReviews.map((item) => {
+          if (item.user === uId) {
+            return res.json({ error: "Your already reviewd the product" });
+          } else {
+            try {
+              let newRatingReview = productModel.findByIdAndUpdate(pId, {
+                $push: {
+                  pRatingsReviews: {
+                    review: review,
+                    user: uId,
+                    rating: rating,
+                  },
+                },
+              });
+              newRatingReview.exec((err, result) => {
+                if (err) {
+                  console.log(err);
+                }
+                return res.json({ success: "Thanks for your review" });
+              });
+            } catch (err) {
+              return res.json({ error: "Cart product wrong" });
+            }
+          }
+        });
+      } else {
+        try {
+          let newRatingReview = productModel.findByIdAndUpdate(pId, {
+            $push: {
+              pRatingsReviews: { review: review, user: uId, rating: rating },
+            },
+          });
+          newRatingReview.exec((err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            return res.json({ success: "Thanks for your review" });
+          });
+        } catch (err) {
+          return res.json({ error: "Cart product wrong" });
+        }
+      }
+    }
+  }
+
+  async deleteReview(req, res) {
+    let { rId, pId } = req.body;
+    if (!rId) {
+      return res.json({ message: "All filled must be required" });
+    } else {
+      try {
+        let reviewDelete = productModel.findByIdAndUpdate(pId, {
+          $pull: { pRatingsReviews: { _id: rId } },
+        });
+        reviewDelete.exec((err, result) => {
+          if (err) {
+            console.log(err);
+          }
+          return res.json({ success: "Your review is deleted" });
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+}
+
+const productController = new Product();
+module.exports = productController;
+```
+
+
+[controller/customize.js]
+```
+const fs = require("fs");
+const categoryModel = require("../models/categories");
+const productModel = require("../models/products");
+const orderModel = require("../models/orders");
+const userModel = require("../models/users");
+const customizeModel = require("../models/customize");
+
+class Customize {
+  async getImages(req, res) {
+    try {
+      let Images = await customizeModel.find({});
+      if (Images) {
+        return res.json({ Images });
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async uploadSlideImage(req, res) {
+    let image = req.file.filename;
+    if (!image) {
+      return res.json({ error: "All field required" });
+    }
+    try {
+      let newCustomzie = new customizeModel({
+        slideImage: image,
+      });
+      let save = await newCustomzie.save();
+      if (save) {
+        return res.json({ success: "Image upload successfully" });
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async deleteSlideImage(req, res) {
+    let { id } = req.body;
+    if (!id) {
+      return res.json({ error: "All field required" });
+    } else {
+      try {
+        let deletedSlideImage = await customizeModel.findById(id);
+        const filePath = `../server/public/uploads/customize/${deletedSlideImage.slideImage}`;
+
+        let deleteImage = await customizeModel.findByIdAndDelete(id);
+        if (deleteImage) {
+          // Delete Image from uploads -> customizes folder
+          fs.unlink(filePath, (err) => {
+            if (err) {
+              console.log(err);
+            }
+            return res.json({ success: "Image deleted successfully" });
+          });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+
+  async getAllData(req, res) {
+    try {
+      let Categories = await categoryModel.find({}).count();
+      let Products = await productModel.find({}).count();
+      let Orders = await orderModel.find({}).count();
+      let Users = await userModel.find({}).count();
+      if (Categories && Products && Orders) {
+        return res.json({ Categories, Products, Orders, Users });
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+}
+
+const customizeController = new Customize();
+module.exports = customizeController;
+```
+
+
+[controller/braintree.js]
+```
+var braintree = require("braintree");
+require("dotenv").config();
+
+var gateway = new braintree.BraintreeGateway({
+  environment: braintree.Environment.Sandbox,
+  merchantId: process.env.BRAINTREE_MERCHANT_ID,
+  publicKey: process.env.BRAINTREE_PUBLIC_KEY,
+  privateKey: process.env.BRAINTREE_PRIVATE_KEY,
+});
+
+class brainTree {
+  ganerateToken(req, res) {
+    gateway.clientToken.generate({}, (err, response) => {
+      if (err) {
+        return res.json(err);
+      }
+      return res.json(response);
+    });
+  }
+
+  paymentProcess(req, res) {
+    let { amountTotal, paymentMethod } = req.body;
+    gateway.transaction.sale(
+      {
+        amount: amountTotal,
+        paymentMethodNonce: paymentMethod,
+        options: {
+          submitForSettlement: true,
+        },
+      },
+      (err, result) => {
+        if (err) {
+          console.error(err);
+          return res.json(err);
+        }
+
+        if (result.success) {
+          console.log("Transaction ID: " + result.transaction.id);
+          return res.json(result);
+        } else {
+          console.error(result.message);
+        }
+      }
+    );
+  }
+}
+
+const brainTreeController = new brainTree();
+module.exports = brainTreeController;
+```
+
+
+[controller/auth.js]
+```
+const { toTitleCase, validateEmail } = require("../config/function");
+const bcrypt = require("bcryptjs");
+const userModel = require("../models/users");
+const jwt = require("jsonwebtoken");
+const { JWT_SECRET } = require("../config/keys");
+
+class Auth {
+  async isAdmin(req, res) {
+    let { loggedInUserId } = req.body;
+    try {
+      let loggedInUserRole = await userModel.findById(loggedInUserId);
+      res.json({ role: loggedInUserRole.userRole });
+    } catch {
+      res.status(404);
+    }
+  }
+
+  async allUser(req, res) {
+    try {
+      let allUser = await userModel.find({});
+      res.json({ users: allUser });
+    } catch {
+      res.status(404);
+    }
+  }
+
+  /* User Registration/Signup controller  */
+  async postSignup(req, res) {
+    let { name, email, password, cPassword } = req.body;
+    let error = {};
+    if (!name || !email || !password || !cPassword) {
+      error = {
+        ...error,
+        name: "Filed must not be empty",
+        email: "Filed must not be empty",
+        password: "Filed must not be empty",
+        cPassword: "Filed must not be empty",
+      };
+      return res.json({ error });
+    }
+    if (name.length < 3 || name.length > 25) {
+      error = { ...error, name: "Name must be 3-25 charecter" };
+      return res.json({ error });
+    } else {
+      if (validateEmail(email)) {
+        name = toTitleCase(name);
+        if ((password.length > 255) | (password.length < 8)) {
+          error = {
+            ...error,
+            password: "Password must be 8 charecter",
+            name: "",
+            email: "",
+          };
+          return res.json({ error });
+        } else {
+          // If Email & Number exists in Database then:
+          try {
+            password = bcrypt.hashSync(password, 10);
+            const data = await userModel.findOne({ email: email });
+            if (data) {
+              error = {
+                ...error,
+                password: "",
+                name: "",
+                email: "Email already exists",
+              };
+              return res.json({ error });
+            } else {
+              let newUser = new userModel({
+                name,
+                email,
+                password,
+                // ========= Here role 1 for admin signup role 0 for customer signup =========
+                userRole: 1, // Field Name change to userRole from role
+              });
+              newUser
+                .save()
+                .then((data) => {
+                  return res.json({
+                    success: "Account create successfully. Please login",
+                  });
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
+            }
+          } catch (err) {
+            console.log(err);
+          }
+        }
+      } else {
+        error = {
+          ...error,
+          password: "",
+          name: "",
+          email: "Email is not valid",
+        };
+        return res.json({ error });
+      }
+    }
+  }
+
+  /* User Login/Signin controller  */
+  async postSignin(req, res) {
+    let { email, password } = req.body;
+    if (!email || !password) {
+      return res.json({
+        error: "Fields must not be empty",
+      });
+    }
+    try {
+      const data = await userModel.findOne({ email: email });
+      if (!data) {
+        return res.json({
+          error: "Invalid email or password",
+        });
+      } else {
+        const login = await bcrypt.compare(password, data.password);
+        if (login) {
+          const token = jwt.sign(
+            { _id: data._id, role: data.userRole },
+            JWT_SECRET
+          );
+          const encode = jwt.verify(token, JWT_SECRET);
+          return res.json({
+            token: token,
+            user: encode,
+          });
+        } else {
+          return res.json({
+            error: "Invalid email or password",
+          });
+        }
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+}
+
+const authController = new Auth();
+module.exports = authController;
+```
+
+

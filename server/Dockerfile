@@ -1,23 +1,15 @@
-# server/Dockerfile
-FROM node:20-slim
-
+# ---------- base layer ----------
+FROM node:20-slim AS base
 WORKDIR /usr/src/app
-ENV TZ=Europe/Rome \
-    NODE_ENV=production \
-    PORT=8000
+ENV TZ=Europe/Rome
+COPY package*.json ./
+RUN npm install --omit=dev --legacy-peer-deps
 
-#  Solo i manifest - install dipendenze
-COPY package.json ./
-RUN npm install 
-
-COPY /config ./config
-COPY /controller ./controller
-COPY /middleware ./middleware
-COPY /models ./models
-COPY /routes ./routes
-COPY ./app.js ./
-COPY ./.env ./.env 
-
-
+# ---------- production layer ----------
+FROM node:20-slim AS production
+WORKDIR /usr/src/app
+ENV NODE_ENV=production
+COPY --from=base /usr/src/app/node_modules ./node_modules
+COPY . .                                   
 EXPOSE 8000
-CMD ["npm", "run", "start:dev"]
+CMD ["node", "app.js"]
