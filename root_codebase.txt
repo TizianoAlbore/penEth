@@ -1,0 +1,44 @@
+[docker-compose.yml]
+```
+services:
+  mongo:
+    image: mongo:5
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports: ["27017:27017"]
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server","--save",""]    # no-auth (come già indicato)
+    ports: ["6379:6379"]
+
+  server:
+    build: ./server
+    environment:
+      DATABASE: mongodb://mongo:27017/ecommerce
+      PORT: 8000
+      JWT_SECRET: SecretKey
+      BRAINTREE_MERCHANT_ID: ${BRAINTREE_MERCHANT_ID:-}
+      BRAINTREE_PUBLIC_KEY:  ${BRAINTREE_PUBLIC_KEY:-}
+      BRAINTREE_PRIVATE_KEY: ${BRAINTREE_PRIVATE_KEY:-}
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./server/public/uploads:/usr/src/app/public/uploads
+    ports: ["8000:8000"]
+    depends_on: [mongo, redis]
+
+  client:
+    build:
+      context: ./client
+      args:
+        REACT_APP_API_URL: http://localhost:8000    # sarà embedded nel bundle
+    ports: ["3000:3000"]
+    depends_on: [server]
+
+volumes:
+  mongo_data:
+```
+
+
