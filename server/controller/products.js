@@ -5,8 +5,7 @@ const path = require("path");
 class Product {
   // Delete Image from uploads -> products folder
   static deleteImages(images, mode) {
-    var basePath =
-      path.resolve(__dirname + "../../") + "/public/uploads/products/";
+    const basePath = path.resolve(__dirname, "..", "public", "uploads", "products") + path.sep;
     console.log(basePath);
     for (var i = 0; i < images.length; i++) {
       let filePath = "";

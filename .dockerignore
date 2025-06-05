@@ -2,4 +2,3 @@
 node_modules
 */node_modules
 client/build
-server/public/uploads   # la montiamo come volume

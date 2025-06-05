@@ -1,5 +1,76 @@
 [docker-compose.yml]
 ```
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:5
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --eval 'db.runCommand({ ping: 1 })' || exit 1"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server", "--save", ""]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+      timeout: 3s
+
+  server:
+    build:
+      context: ./server
+      target: production         # vedi Dockerfile multistage
+    restart: unless-stopped
+    environment:
+      DATABASE: mongodb://mongo:27017/ecommerce
+      PORT: 8000
+      JWT_SECRET: SecretKey
+      BRAINTREE_MERCHANT_ID: ${BRAINTREE_MERCHANT_ID:-}
+      BRAINTREE_PUBLIC_KEY:  ${BRAINTREE_PUBLIC_KEY:-}
+      BRAINTREE_PRIVATE_KEY: ${BRAINTREE_PRIVATE_KEY:-}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/usr/src/app/public/uploads
+    ports:
+      - "8000:8000"
+
+  client:
+    build:
+      context: ./client
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      - REACT_APP_API_URL=/api          # il proxy Nginx risolve sull’origin
+    ports:
+      - "3000:80"                       # fuori 3000, dentro container 80
+
+volumes:
+  mongo_data:
+  uploads_data:
+```
+
+[root_codebase.txt]
+```
+[docker-compose.yml]
+```
 services:
   mongo:
     image: mongo:5
@@ -39,6 +110,9 @@ services:
 
 volumes:
   mongo_data:
+```
+
+
 ```
 
 

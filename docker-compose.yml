@@ -59,7 +59,11 @@ services:
       - REACT_APP_API_URL=/api          # il proxy Nginx risolve sull’origin
     ports:
       - "3000:80"                       # fuori 3000, dentro container 80
+    volumes:
+        - uploads_data:/usr/share/nginx/html/uploads
 
+
+        
 volumes:
   mongo_data:
   uploads_data:

@@ -42,7 +42,7 @@ class Customize {
     } else {
       try {
         let deletedSlideImage = await customizeModel.findById(id);
-        const filePath = `../server/public/uploads/customize/${deletedSlideImage.slideImage}`;
+        const filePath = path.resolve(__dirname, "..", "public", "uploads", "customize", deletedSlideImage.slideImage);
 
         let deleteImage = await customizeModel.findByIdAndDelete(id);
         if (deleteImage) {
@@ -62,13 +62,13 @@ class Customize {
 
   async getAllData(req, res) {
     try {
-      let Categories = await categoryModel.find({}).count();
-      let Products = await productModel.find({}).count();
-      let Orders = await orderModel.find({}).count();
-      let Users = await userModel.find({}).count();
-      if (Categories && Products && Orders) {
-        return res.json({ Categories, Products, Orders, Users });
-      }
+      const Categories = await categoryModel.countDocuments();
+      const Products   = await productModel.countDocuments();
+      const Orders     = await orderModel.countDocuments();
+      const Users      = await userModel.countDocuments();
+
+      return res.json({ Categories, Products, Orders, Users });
+
     } catch (err) {
       console.log(err);
     }
