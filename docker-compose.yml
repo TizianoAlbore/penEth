@@ -34,6 +34,7 @@ services:
     environment:
       DATABASE: mongodb://mongo:27017/ecommerce
       PORT: 8000
+      NODE_TLS_REJECT_UNAUTHORIZED: 0
       JWT_SECRET: SecretKey
       BRAINTREE_MERCHANT_ID: ${BRAINTREE_MERCHANT_ID:-}
       BRAINTREE_PUBLIC_KEY:  ${BRAINTREE_PUBLIC_KEY:-}
@@ -62,6 +63,12 @@ services:
     volumes:
         - uploads_data:/usr/share/nginx/html/uploads
 
+  attacker:
+    build: ./attacker
+    environment:
+      - PORT=3001
+    ports:
+      - "3001:3001"
 
         
 volumes:
