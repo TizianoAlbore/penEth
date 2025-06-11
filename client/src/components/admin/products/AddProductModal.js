@@ -94,17 +94,15 @@ const AddProductDetail = ({ categories }) => {
       {/* Black Overlay */}
       <div
         onClick={(e) => dispatch({ type: "addProductModal", payload: false })}
-        className={`${
-          data.addProductModal ? "" : "hidden"
-        } fixed top-0 left-0 z-30 w-full h-full bg-black opacity-50`}
+        className={`${data.addProductModal ? "" : "hidden"
+          } fixed top-0 left-0 z-30 w-full h-full bg-black opacity-50`}
       />
       {/* End Black Overlay */}
 
       {/* Modal Start */}
       <div
-        className={`${
-          data.addProductModal ? "" : "hidden"
-        } fixed inset-0 flex items-center z-30 justify-center overflow-auto`}
+        className={`${data.addProductModal ? "" : "hidden"
+          } fixed inset-0 flex items-center z-30 justify-center overflow-auto`}
       >
         <div className="mt-32 md:mt-0 relative bg-white w-11/12 md:w-3/6 shadow-lg flex flex-col items-center space-y-4 px-4 py-4 md:px-8">
           <div className="flex items-center justify-between w-full pt-4">
@@ -192,9 +190,9 @@ const AddProductDetail = ({ categories }) => {
                 rows={2}
               />
             </div>
-            {/* Most Important part for uploading multiple image */}
+            {/* 📥 UPLOAD IMAGE FROM DEVICE */}
             <div className="flex flex-col mt-4">
-              <label htmlFor="image">Product Images *</label>
+              <label htmlFor="image">📥 Upload image from device *</label>
               <span className="text-gray-600 text-xs">Must need 2 images</span>
               <input
                 onChange={(e) =>
@@ -212,6 +210,40 @@ const AddProductDetail = ({ categories }) => {
                 multiple
               />
             </div>
+
+
+
+            {/* 🔎 FETCH IMAGE FROM URL */}
+            {/* Component added to allow SSRF */}
+            <div className="flex flex-col mt-4">
+              <label htmlFor="image">🔎 Fetch image from URL *</label>
+              <span className="text-gray-600 text-xs">Must need 2 images</span>
+
+              <div className="flex">
+                <input
+                  onChange={(e) =>
+                    setFdata({
+                      ...fData,
+                      error: false,
+                      success: false,
+                      imageUrl: e.target.value, // assumendo che tu voglia salvare l'URL
+                    })
+                  }
+                  type="text"
+                  className="px-4 py-2 border focus:outline-none flex-1"
+                  id="image"
+                  placeholder="Enter image URL"
+                />
+                <button
+                  //onClick={handleSearchImage} // devi definire questa funzione
+                  className="ml-2 px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                >
+                  Search
+                </button>
+
+              </div>
+            </div>
+
             {/* Most Important part for uploading multiple image */}
             <div className="flex space-x-1 py-4">
               <div className="w-1/2 flex flex-col space-y-1">
@@ -259,12 +291,12 @@ const AddProductDetail = ({ categories }) => {
                   </option>
                   {categories.length > 0
                     ? categories.map(function (elem) {
-                        return (
-                          <option name="status" value={elem._id} key={elem._id}>
-                            {elem.cName}
-                          </option>
-                        );
-                      })
+                      return (
+                        <option name="status" value={elem._id} key={elem._id}>
+                          {elem.cName}
+                        </option>
+                      );
+                    })
                     : ""}
                 </select>
               </div>
@@ -288,7 +320,7 @@ const AddProductDetail = ({ categories }) => {
                 />
               </div>
               <div className="w-1/2 flex flex-col space-y-1">
-                <label htmlFor="offer">Product Offfer (%) *</label>
+                <label htmlFor="offer">Product Offer (%) *</label>
                 <input
                   value={fData.pOffer}
                   onChange={(e) =>
