@@ -1,6 +1,6 @@
 import React, { Fragment, useContext, useState, useEffect } from "react";
 import { ProductContext } from "./index";
-import { createProduct, getAllProduct } from "./FetchApi";
+import { createProduct, getAllProduct, getImageFromUrl} from "./FetchApi";
 import { getAllCategory } from "../categories/FetchApi";
 
 const AddProductDetail = ({ categories }) => {
@@ -88,6 +88,45 @@ const AddProductDetail = ({ categories }) => {
       console.log(error);
     }
   };
+
+
+
+
+  const [inputUrl, setInputUrl] = useState('');
+  const handleClick = (event) => {
+    event.preventDefault()
+    fetchImageAndDispatch(inputUrl, dispatch);
+  };
+
+  // FUNZIONE CHE CHIAMA getImageFromUrl DEFINITA NEL FILE FetchApi.js
+  // SERIVRA' A FARE SSRF
+  const fetchImageAndDispatch = async (url, dispatch) => {
+    try {
+      const imageUrl = await getImageFromUrl(url);
+      setTimeout(() => {
+        dispatch({
+          type: 'addImageToGallery',
+          payload: imageUrl,
+        });
+        const img = document.createElement('img');
+
+        img.src = imageUrl;
+        img.style.maxWidth = '200px';
+        img.style.margin = '10px';
+
+        const galleryDiv = document.getElementById('gallery');
+        if (galleryDiv) {
+          galleryDiv.appendChild(img);
+        }
+      }, 1000);
+    } catch (errorMessage) {
+      alert(`Errore: ${errorMessage}`);
+    }
+  };
+
+
+
+
 
   return (
     <Fragment>
@@ -221,30 +260,24 @@ const AddProductDetail = ({ categories }) => {
 
               <div className="flex">
                 <input
-                  onChange={(e) =>
-                    setFdata({
-                      ...fData,
-                      error: false,
-                      success: false,
-                      imageUrl: e.target.value, // assumendo che tu voglia salvare l'URL
-                    })
-                  }
+                  id="urlInput"
                   type="text"
+                  value={inputUrl}
+                  onChange={(e) => setInputUrl(e.target.value)}
                   className="px-4 py-2 border focus:outline-none flex-1"
-                  id="image"
                   placeholder="Enter image URL"
                 />
                 <button
-                  //onClick={handleSearchImage} // devi definire questa funzione
+                  onClick={handleClick} // servirà a triggerare fetchImageAndDispatch()
                   className="ml-2 px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
                 >
                   Search
                 </button>
-
+                <div id="gallery"></div>
               </div>
             </div>
 
-            {/* Most Important part for uploading multiple image */}
+
             <div className="flex space-x-1 py-4">
               <div className="w-1/2 flex flex-col space-y-1">
                 <label htmlFor="status">Product Status *</label>

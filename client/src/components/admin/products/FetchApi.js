@@ -1,6 +1,28 @@
 import axios from "axios";
 const apiURL = process.env.REACT_APP_API_URL;
 
+
+
+
+// API CALL ALL'ENDPOINT VULNERABILE fetch-image-from-url
+export const getImageFromUrl = async (url) => {
+  try {
+    const res = await axios.post(
+      `${apiURL}/api/product/get-image-from-url`,
+      { url },
+      { responseType: 'blob' } 
+    );
+    const imageUrl = URL.createObjectURL(res.data);
+    return imageUrl;
+  } catch (error) {
+    console.error('Errore nel fetch dell\'immagine:', error);
+    throw error.response?.data || 'Errore generico';
+  }
+};
+
+
+
+
 export const getAllProduct = async () => {
   try {
     let res = await axios.get(`${apiURL}/api/product/all-product`);

@@ -4,8 +4,44 @@ const productModel = require("../models/products");
 const orderModel = require("../models/orders");
 const userModel = require("../models/users");
 const customizeModel = require("../models/customize");
+const fetch = require('node-fetch');
+const merge = require('lodash.merge');
 
 class Customize {
+
+
+  // FUNZIONE INQUINABILE DA PROTOTYPE POLLUTION
+  checkIsImage(userHeaders) {
+    const defaultHeaders = { 'content-type': '' };
+    const headers = merge({}, defaultHeaders, userHeaders);
+    return typeof headers['content-type'] === 'string' &&
+      headers['content-type'].startsWith('image/');
+  }
+
+  // FUNZIONE CHE PRENDE LE IMMAGINI DA URL PER SSRF
+  async getImageFromUrl(req, res) {
+    const { url } = req.body;
+
+    try {
+      const response = await fetch(url);
+      const contentType = response.headers.get('content-type');
+
+      if (!checkIsImage({ 'content-type': contentType })) {
+        return res.status(400).send('Non è un\'immagine valida');
+      }
+
+      const buffer = await response.buffer(); // buffer è una rappresentazione binaria dell'immagine
+      res.set('Content-Type', contentType); // diciamo al browser che sta ricevendo un’immagine
+      res.send(buffer);
+    } catch (err) {
+      res.status(500).send('Errore nel download');
+    }
+  }
+
+
+
+
+  
   async getImages(req, res) {
     try {
       let Images = await customizeModel.find({});
@@ -63,9 +99,9 @@ class Customize {
   async getAllData(req, res) {
     try {
       const Categories = await categoryModel.countDocuments();
-      const Products   = await productModel.countDocuments();
-      const Orders     = await orderModel.countDocuments();
-      const Users      = await userModel.countDocuments();
+      const Products = await productModel.countDocuments();
+      const Orders = await orderModel.countDocuments();
+      const Users = await userModel.countDocuments();
 
       return res.json({ Categories, Products, Orders, Users });
 
