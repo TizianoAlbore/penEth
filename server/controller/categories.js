@@ -1,6 +1,7 @@
 const { toTitleCase } = require("../config/function");
 const categoryModel = require("../models/categories");
 const fs = require("fs");
+const path = require("path");
 
 class Category {
   async getAllCategory(req, res) {
