@@ -14,6 +14,37 @@ var storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+const fs = require("fs");
+const csv = require("csv-parser");
+const Product = require("../models/products");
+const detectSeparator = (filePath) => {
+  const firstLine = fs.readFileSync(filePath, "utf8").split("\n")[0];
+  return firstLine.includes(";") ? ";" : ",";
+};
+
+
+router.post("/bulk-upload", upload.single("file"), async (req, res) => {
+  const results = [];
+  const validProducts = [];
+
+  const separator = detectSeparator(req.file.path);
+
+  fs.createReadStream(req.file.path)
+    .pipe(csv({ separator }))
+    .on("data", (data) => results.push(data))
+    .on("end", async () => {
+      try {
+        await Product.insertMany(results);
+        fs.unlinkSync(req.file.path); // pulizia
+        res.status(200).json({ message: "Prodotti caricati con successo!" });
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Errore nel caricamento." });
+      }
+    });
+});
+
+
 router.get("/all-product", productController.getAllProduct);
 router.post("/product-by-category", productController.getProductByCategory);
 router.post("/product-by-price", productController.getProductByPrice);

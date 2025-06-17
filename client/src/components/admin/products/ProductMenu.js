@@ -5,6 +5,30 @@ import EditProductModal from "./EditProductModal";
 
 const ProductMenu = (props) => {
   const { dispatch } = useContext(ProductContext);
+  const handleBulkUpload = async (e) => {
+    console.log("CSV file selected!");
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/product/bulk-upload", {
+        method: "POST",
+        body: formData,
+        headers: {
+          // Aggiungi l'header Authorization se serve il token JWT
+          // 'Authorization': `Bearer ${token}`
+        },
+      });
+
+      const result = await response.json();
+      alert(result.message || "Caricamento completato.");
+    } catch (error) {
+      console.error(error);
+      alert("Errore nel caricamento del CSV.");
+    }
+  };
+
   return (
     <Fragment>
       <div className="col-span-1 flex justify-between items-center">
@@ -31,6 +55,16 @@ const ProductMenu = (props) => {
             </svg>
             Add Product
           </span>
+          {/* Caricamento CSV */}
+          <label className="cursor-pointer p-2 bg-green-600 text-white rounded-md text-sm font-semibold">
+            Carica CSV
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleBulkUpload}
+              className="hidden"
+            />
+          </label>
         </div>
         <AddProductModal />
         <EditProductModal />

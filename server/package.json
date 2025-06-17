@@ -22,16 +22,17 @@
     "braintree": "^3.0.0",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "fast-jwt": "5.0.2",
+    "get-jwks": "2.0.1",
     "i": "^0.3.6",
     "mongoose": "^5.9.27",
     "morgan": "^1.10.0",
     "multer": "^1.4.2",
     "nodemon": "^2.0.4",
     "npm": "^6.14.8",
-    "fast-jwt": "5.0.2",
-    "get-jwks": "2.0.1",
     "pem2jwk": "1.0.2"
   }
 }
