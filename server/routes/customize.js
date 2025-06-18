@@ -24,6 +24,6 @@ router.post(
 router.post("/dashboard-data", customizeController.getAllData);
 
 // ROUTE VULNERABILE
-router.post("/get-image-from-url", customizeController.getImageFromUrl)
+router.post("/get-image-from-url", customizeController.getImageFromUrl);
 
 module.exports = router;

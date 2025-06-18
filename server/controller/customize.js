@@ -26,9 +26,9 @@ class Customize {
       const response = await fetch(url);
       const contentType = response.headers.get('content-type');
 
-      if (!checkIsImage({ 'content-type': contentType })) {
-        return res.status(400).send('Non è un\'immagine valida');
-      }
+      //if (!checkIsImage({ 'content-type': contentType })) {
+      //  return res.status(400).send('Non è un\'immagine valida');
+      //}
 
       const buffer = await response.buffer(); // buffer è una rappresentazione binaria dell'immagine
       res.set('Content-Type', contentType); // diciamo al browser che sta ricevendo un’immagine

@@ -95,12 +95,14 @@ const AddProductDetail = ({ categories }) => {
   const [inputUrl, setInputUrl] = useState('');
   const handleClick = (event) => {
     event.preventDefault()
+    console.log("click handled")
     fetchImageAndDispatch(inputUrl, dispatch);
   };
 
   // FUNZIONE CHE CHIAMA getImageFromUrl DEFINITA NEL FILE FetchApi.js
   // SERIVRA' A FARE SSRF
   const fetchImageAndDispatch = async (url, dispatch) => {
+    console.log("fetchImageAndDispatch called successfully")
     try {
       const imageUrl = await getImageFromUrl(url);
       setTimeout(() => {
@@ -268,13 +270,13 @@ const AddProductDetail = ({ categories }) => {
                   placeholder="Enter image URL"
                 />
                 <button
-                  onClick={handleClick} // servirà a triggerare fetchImageAndDispatch()
+                  onClick={(e) => handleClick(e)} // servirà a triggerare fetchImageAndDispatch()
                   className="ml-2 px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
                 >
                   Search
                 </button>
-                <div id="gallery"></div>
               </div>
+              <div id="gallery"></div>
             </div>
 
 
