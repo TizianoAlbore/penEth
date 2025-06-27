@@ -6,6 +6,43 @@ const userModel = require("../models/users");
 const customizeModel = require("../models/customize");
 const fetch = require('node-fetch');
 const merge = require('lodash.merge');
+const dns = require('dns').promises;
+const net = require('net');
+
+function isPrivateIP(ip) {
+  if (net.isIPv4(ip)) {
+    const parts = ip.split('.').map(Number);
+    return parts[0] === 10 ||
+      (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+      (parts[0] === 192 && parts[1] === 168) ||
+      parts[0] === 127 ||
+      (parts[0] === 169 && parts[1] === 254);
+  }
+  if (net.isIPv6(ip)) {
+    return ip === '::1' || ip.startsWith('fe80:') || ip.startsWith('fc00:') || ip.startsWith('fd00:');
+  }
+  return false;
+}
+
+async function isBlockedURL(urlString) {
+  try {
+    const parsed = new URL(urlString);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return true;
+    }
+    const hostname = parsed.hostname;
+    if (['localhost', '0.0.0.0'].includes(hostname)) {
+      return true;
+    }
+    if (net.isIP(hostname)) {
+      return isPrivateIP(hostname);
+    }
+    const addresses = await dns.lookup(hostname, { all: true });
+    return addresses.some(addr => isPrivateIP(addr.address));
+  } catch (err) {
+    return true;
+  }
+}
 
 class Customize {
 
@@ -23,6 +60,9 @@ class Customize {
     const { url } = req.body;
 
     try {
+      if (await isBlockedURL(url)) {
+        return res.status(400).send('Invalid image URL');
+      }
       const response = await fetch(url);
       const contentType = response.headers.get('content-type');
 
