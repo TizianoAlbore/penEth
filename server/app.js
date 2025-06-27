@@ -27,7 +27,6 @@ const cors = require("cors");
 
 // Import Router
 const authRouter = require("./routes/auth");
-
 const categoryRouter = require("./routes/categories");
 const productRouter = require("./routes/products");
 // const brainTreeRouter = require("./routes/braintree");
@@ -73,7 +72,6 @@ app.use("/api/product", productRouter);
 // app.use("/api", brainTreeRouter);
 app.use("/api/order", orderRouter);
 app.use("/api/customize", customizeRouter);
-
 
 // Run Server
 const PORT = process.env.PORT || 8000;
