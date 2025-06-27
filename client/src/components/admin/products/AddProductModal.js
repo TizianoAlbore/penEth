@@ -273,8 +273,6 @@ const AddProductDetail = ({ categories }) => {
                     })
                   }
                   type="text"
-                  value={inputUrl}
-                  onChange={(e) => setInputUrl(e.target.value)}
                   className="px-4 py-2 border focus:outline-none flex-1"
                   placeholder="Enter image URL"
                 />

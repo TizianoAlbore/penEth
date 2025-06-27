@@ -100,7 +100,7 @@ const TodayOrderTable = ({ order }) => {
               <img
                 key={index}
                 className="w-12 h-12 object-cover"
-                src={`${apiURL}/uploads/products/${item.id.pImages[0]}`}
+                src={`/uploads/products/${item.id.pImages[0]}`}
                 alt="Pic"
               />
             );
