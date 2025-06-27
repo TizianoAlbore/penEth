@@ -14,7 +14,7 @@ const jwkWithMeta = {
   alg: "RS256",            // algoritmo previsto
   use: "sig"               // uso: signature
 };
-
+// TODO openid-configuration
 // 3. Espone la JWKS
 router.get("/.well-known/jwks.json", (req, res) => {
   res.json({ keys: [jwkWithMeta] });
