@@ -18,7 +18,8 @@ const EditProductModal = (props) => {
     pName: "",
     pDescription: "",
     pImages: null,
-    pEditImages: null,
+    pEditImages: [],
+    imageUrl: "",
     pStatus: "",
     pCategory: "",
     pQuantity: "",
@@ -50,6 +51,8 @@ const EditProductModal = (props) => {
       pQuantity: data.editProductModal.pQuantity,
       pPrice: data.editProductModal.pPrice,
       pOffer: data.editProductModal.pOffer,
+      pEditImages: [],
+      imageUrl: "",
     });
   }, [data.editProductModal]);
 
@@ -65,7 +68,7 @@ const EditProductModal = (props) => {
 
   const submitForm = async (e) => {
     e.preventDefault();
-    if (!editformData.pEditImages) {
+    if (!editformData.pEditImages || editformData.pEditImages.length === 0) {
       console.log("Image Not upload=============", editformData);
     } else {
       console.log("Image uploading");
@@ -226,7 +229,7 @@ const EditProductModal = (props) => {
                     ...editformData,
                     error: false,
                     success: false,
-                    pEditImages: [...e.target.files],
+                    pEditImages: [...editformData.pEditImages, ...e.target.files],
                   })
                 }
                 type="file"
@@ -235,6 +238,75 @@ const EditProductModal = (props) => {
                 id="image"
                 multiple
               />
+
+              {/* Fetch image from URL */}
+              <div className="flex mt-2">
+                <input
+                  value={editformData.imageUrl}
+                  onChange={(e) =>
+                    setEditformdata({
+                      ...editformData,
+                      imageUrl: e.target.value,
+                    })
+                  }
+                  type="text"
+                  className="px-4 py-2 border focus:outline-none flex-1"
+                  placeholder="Enter image URL"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(editformData.imageUrl);
+                      const blob = await response.blob();
+                      const ext = blob.type.split("/")[1] || "jpg";
+                      const file = new File(
+                        [blob],
+                        `url_${Date.now()}.${ext}`,
+                        { type: blob.type }
+                      );
+                      setEditformdata({
+                        ...editformData,
+                        pEditImages: [...editformData.pEditImages, file],
+                        imageUrl: "",
+                      });
+                    } catch (err) {
+                      console.error(err);
+                    }
+                  }}
+                  className="ml-2 px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                >
+                  Search
+                </button>
+              </div>
+
+              {editformData.pEditImages && editformData.pEditImages.length > 0 && (
+                <div className="flex space-x-2 mt-2">
+                  {editformData.pEditImages.map((img, idx) => (
+                    <div className="relative" key={idx}>
+                      <img
+                        className="h-16 w-16 object-cover"
+                        src={URL.createObjectURL(img)}
+                        alt="preview"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const files = [...editformData.pEditImages];
+                          files.splice(idx, 1);
+                          setEditformdata({
+                            ...editformData,
+                            pEditImages: files,
+                          });
+                        }}
+                        className="absolute top-0 right-0 bg-red-600 text-white rounded-full px-1"
+                      >
+                        x
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             {/* Most Important part for uploading multiple image */}
             <div className="flex space-x-1 py-4">
@@ -265,6 +337,9 @@ const EditProductModal = (props) => {
               <div className="w-1/2 flex flex-col space-y-1">
                 <label htmlFor="status">Product Category *</label>
                 <select
+                  value={
+                    editformData.pCategory?._id || editformData.pCategory || ""
+                  }
                   onChange={(e) =>
                     setEditformdata({
                       ...editformData,
@@ -280,33 +355,12 @@ const EditProductModal = (props) => {
                   <option disabled value="">
                     Select a category
                   </option>
-                  {categories && categories.length > 0
-                    ? categories.map((elem) => {
-                        return (
-                          <Fragment key={elem._id}>
-                            {editformData.pCategory._id &&
-                            editformData.pCategory._id === elem._id ? (
-                              <option
-                                name="status"
-                                value={elem._id}
-                                key={elem._id}
-                                selected
-                              >
-                                {elem.cName}
-                              </option>
-                            ) : (
-                              <option
-                                name="status"
-                                value={elem._id}
-                                key={elem._id}
-                              >
-                                {elem.cName}
-                              </option>
-                            )}
-                          </Fragment>
-                        );
-                      })
-                    : ""}
+                  {categories &&
+                    categories.map((elem) => (
+                      <option name="status" value={elem._id} key={elem._id}>
+                        {elem.cName}
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>

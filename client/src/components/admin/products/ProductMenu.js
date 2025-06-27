@@ -2,9 +2,21 @@ import React, { Fragment, useContext } from "react";
 import { ProductContext } from "./index";
 import AddProductModal from "./AddProductModal";
 import EditProductModal from "./EditProductModal";
+import { getAllProduct } from "./FetchApi";
 
 const ProductMenu = (props) => {
   const { dispatch } = useContext(ProductContext);
+
+  const refreshProducts = async () => {
+    const responseData = await getAllProduct();
+    if (responseData && responseData.Products) {
+      dispatch({
+        type: "fetchProductsAndChangeState",
+        payload: responseData.Products,
+      });
+    }
+  };
+
   const handleBulkUpload = async (e) => {
     console.log("CSV file selected!");
     const file = e.target.files[0];
@@ -23,6 +35,9 @@ const ProductMenu = (props) => {
 
       const result = await response.json();
       alert(result.message || "Caricamento completato.");
+      if (response.ok) {
+        await refreshProducts();
+      }
     } catch (error) {
       console.error(error);
       alert("Errore nel caricamento del CSV.");

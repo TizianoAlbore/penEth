@@ -14,7 +14,8 @@ const AddProductDetail = ({ categories }) => {
     pName: "",
     pDescription: "",
     pStatus: "Active",
-    pImage: null, // Initial value will be null or empty array
+    pImage: [],
+    imageUrl: "",
     pCategory: "",
     pPrice: "",
     pOffer: 0,
@@ -39,7 +40,7 @@ const AddProductDetail = ({ categories }) => {
     e.preventDefault();
     e.target.reset();
 
-    if (!fData.pImage) {
+    if (!fData.pImage || fData.pImage.length < 2) {
       setFdata({ ...fData, error: "Please upload at least 2 image" });
       setTimeout(() => {
         setFdata({ ...fData, error: false });
@@ -54,7 +55,7 @@ const AddProductDetail = ({ categories }) => {
           ...fData,
           pName: "",
           pDescription: "",
-          pImage: "",
+          pImage: [],
           pStatus: "Active",
           pCategory: "",
           pPrice: "",
@@ -68,7 +69,7 @@ const AddProductDetail = ({ categories }) => {
             ...fData,
             pName: "",
             pDescription: "",
-            pImage: "",
+            pImage: [],
             pStatus: "Active",
             pCategory: "",
             pPrice: "",
@@ -241,7 +242,7 @@ const AddProductDetail = ({ categories }) => {
                     ...fData,
                     error: false,
                     success: false,
-                    pImage: [...e.target.files],
+                    pImage: [...fData.pImage, ...e.target.files],
                   })
                 }
                 type="file"
@@ -262,7 +263,15 @@ const AddProductDetail = ({ categories }) => {
 
               <div className="flex">
                 <input
-                  id="urlInput"
+                  value={fData.imageUrl}
+                  onChange={(e) =>
+                    setFdata({
+                      ...fData,
+                      error: false,
+                      success: false,
+                      imageUrl: e.target.value,
+                    })
+                  }
                   type="text"
                   value={inputUrl}
                   onChange={(e) => setInputUrl(e.target.value)}
@@ -270,7 +279,25 @@ const AddProductDetail = ({ categories }) => {
                   placeholder="Enter image URL"
                 />
                 <button
-                  onClick={(e) => handleClick(e)} // servirà a triggerare fetchImageAndDispatch()
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(fData.imageUrl);
+                      const blob = await response.blob();
+                      const ext = blob.type.split("/")[1] || "jpg";
+                      const file = new File([blob], `url_${Date.now()}.${ext}`, {
+                        type: blob.type,
+                      });
+                      setFdata({
+                        ...fData,
+                        pImage: [...fData.pImage, file],
+                        imageUrl: "",
+                        error: false,
+                      });
+                    } catch (err) {
+                      setFdata({ ...fData, error: "Unable to fetch image" });
+                    }
+                  }}
                   className="ml-2 px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
                 >
                   Search
@@ -278,6 +305,56 @@ const AddProductDetail = ({ categories }) => {
               </div>
               <div id="gallery"></div>
             </div>
+
+            {fData.pImage && fData.pImage.length > 0 && (
+              <div className="flex space-x-2 mt-2">
+                {fData.pImage.map((img, idx) => (
+                  <div className="relative" key={idx}>
+                    <img
+                      className="h-16 w-16 object-cover"
+                      src={URL.createObjectURL(img)}
+                      alt="preview"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const files = [...fData.pImage];
+                        files.splice(idx, 1);
+                        setFdata({ ...fData, pImage: files });
+                      }}
+                      className="absolute top-0 right-0 bg-red-600 text-white rounded-full px-1"
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {fData.pImage && fData.pImage.length > 0 && (
+              <div className="flex space-x-2 mt-2">
+                {fData.pImage.map((img, idx) => (
+                  <div className="relative" key={idx}>
+                    <img
+                      className="h-16 w-16 object-cover"
+                      src={URL.createObjectURL(img)}
+                      alt="preview"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const files = [...fData.pImage];
+                        files.splice(idx, 1);
+                        setFdata({ ...fData, pImage: files });
+                      }}
+                      className="absolute top-0 right-0 bg-red-600 text-white rounded-full px-1"
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
 
             <div className="flex space-x-1 py-4">
