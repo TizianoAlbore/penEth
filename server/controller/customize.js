@@ -10,7 +10,6 @@ const merge = require('lodash.merge');
 class Customize {
 
 
-  // FUNZIONE INQUINABILE DA PROTOTYPE POLLUTION
   checkIsImage(userHeaders) {
     const defaultHeaders = { 'content-type': '' };
     const headers = merge({}, defaultHeaders, userHeaders);
@@ -18,7 +17,6 @@ class Customize {
       headers['content-type'].startsWith('image/');
   }
 
-  // FUNZIONE CHE PRENDE LE IMMAGINI DA URL PER SSRF
   async getImageFromUrl(req, res) {
     const { url } = req.body;
 
@@ -38,10 +36,6 @@ class Customize {
     }
   }
 
-
-
-
-  
   async getImages(req, res) {
     try {
       let Images = await customizeModel.find({});

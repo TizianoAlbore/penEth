@@ -1,6 +1,14 @@
 const productModel = require("../models/products");
 const fs = require("fs");
 const path = require("path");
+const csv = require("csv-parser");
+
+function detectSeparator(filePath) {
+  const firstLine = fs.readFileSync(filePath, "utf8").split(/\r?\n/)[0];
+  if (firstLine.includes(";")) return ";";
+  if (firstLine.includes("\t")) return "\t";
+  return ",";
+}
 
 class Product {
   // Delete Image from uploads -> products folder
@@ -343,6 +351,53 @@ class Product {
         console.log(err);
       }
     }
+  }
+
+  async bulkUpload(req, res) {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const results = [];
+    const separator = detectSeparator(req.file.path);
+
+    fs.createReadStream(req.file.path)
+      .pipe(csv({ separator }))
+      .on("data", (data) => results.push(data))
+      .on("end", async () => {
+        try {
+          for (const row of results) {
+            const urls = [row.imageUrl1, row.imageUrl2].filter(Boolean);
+            const downloaded = [];
+            for (const url of urls) {
+              try {
+                const response = await fetch(url);
+                const buffer = await response.buffer();
+                const ext = path.extname(new URL(url).pathname) || ".jpg";
+                const filename = `${Date.now()}_${Math.random()
+                  .toString(36)
+                  .substring(2)}${ext}`;
+                fs.writeFileSync(
+                  path.join("public", "uploads", "products", filename),
+                  buffer
+                );
+                downloaded.push(filename);
+              } catch (err) {
+                console.error("Error fetching image", err);
+              }
+            }
+            if (downloaded.length) row.pImages = downloaded;
+            delete row.imageUrl1;
+            delete row.imageUrl2;
+          }
+          await productModel.insertMany(results);
+          fs.unlinkSync(req.file.path);
+          res.status(200).json({ message: "Prodotti caricati con successo!" });
+        } catch (err) {
+          console.error(err);
+          res.status(500).json({ error: "Errore nel caricamento." });
+        }
+      });
   }
 }
 
