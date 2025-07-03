@@ -30,16 +30,17 @@ class Customize {
 
     try {
       const { buffer, contentType } = await this.fetchImageFromUrl(url);
-      //if (!checkIsImage({ 'content-type': contentType })) {
-      //  return res.status(400).send('Non è un\'immagine valida');
-      //}
+      // if (!checkIsImage({ 'content-type': contentType })) {
+      // throw new Error('Non è un\'immagine valida');
+      // }
 
       res.set('Content-Type', contentType); // diciamo al browser che sta ricevendo un’immagine
       res.send(buffer);
     } catch (err) {
-      const size = 64; // 64x64 pixels
-      const buffer = Buffer.alloc(size * size * 4, 255); // RGBA, all bits set to 1
+      const size = 128; // 128x128 pixels (16KB for RGBA)
+      const buffer = Buffer.alloc(size * size * 4, 255); // RGBA, all bits set to 255 (white)
       res.set('Content-Type', 'image/png');
+      res.send(buffer);
       res.status(500).send(buffer);
     }
   }
