@@ -1,11 +1,12 @@
 const fs = require("fs");
+const path = require("path");
 const categoryModel = require("../models/categories");
 const productModel = require("../models/products");
 const orderModel = require("../models/orders");
 const userModel = require("../models/users");
 const customizeModel = require("../models/customize");
-const fetch = require('node-fetch');
-const merge = require('lodash.merge');
+const fetch = require("node-fetch");
+const merge = require("lodash.merge");
 
 class Customize {
 
@@ -17,22 +18,29 @@ class Customize {
       headers['content-type'].startsWith('image/');
   }
 
+  async fetchImageFromUrl(url) {
+    const response = await fetch(url);
+    const contentType = response.headers.get('content-type');
+    const buffer = await response.buffer();
+    return { buffer, contentType };
+  }
+
   async getImageFromUrl(req, res) {
     const { url } = req.body;
 
     try {
-      const response = await fetch(url);
-      const contentType = response.headers.get('content-type');
-
+      const { buffer, contentType } = await this.fetchImageFromUrl(url);
       //if (!checkIsImage({ 'content-type': contentType })) {
       //  return res.status(400).send('Non è un\'immagine valida');
       //}
 
-      const buffer = await response.buffer(); // buffer è una rappresentazione binaria dell'immagine
       res.set('Content-Type', contentType); // diciamo al browser che sta ricevendo un’immagine
       res.send(buffer);
     } catch (err) {
-      res.status(500).send('Errore nel download');
+      const size = 64; // 64x64 pixels
+      const buffer = Buffer.alloc(size * size * 4, 255); // RGBA, all bits set to 1
+      res.set('Content-Type', 'image/png');
+      res.status(500).send(buffer);
     }
   }
 

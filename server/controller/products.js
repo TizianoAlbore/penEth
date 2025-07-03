@@ -2,6 +2,7 @@ const productModel = require("../models/products");
 const fs = require("fs");
 const path = require("path");
 const csv = require("csv-parser");
+const customizeController = require("./customize");
 
 function detectSeparator(filePath) {
   const firstLine = fs.readFileSync(filePath, "utf8").split(/\r?\n/)[0];
@@ -371,8 +372,7 @@ class Product {
             const downloaded = [];
             for (const url of urls) {
               try {
-                const response = await fetch(url);
-                const buffer = await response.buffer();
+                const { buffer } = await customizeController.fetchImageFromUrl(url);
                 const ext = path.extname(new URL(url).pathname) || ".jpg";
                 const filename = `${Date.now()}_${Math.random()
                   .toString(36)
