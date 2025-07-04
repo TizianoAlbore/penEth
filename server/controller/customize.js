@@ -6,6 +6,7 @@ const userModel = require("../models/users");
 const customizeModel = require("../models/customize");
 const fetch = require('node-fetch');
 const merge = require('lodash.merge');
+const path = require('path');
 
 class Customize {
 
@@ -34,6 +35,7 @@ class Customize {
       res.set('Content-Type', contentType); // diciamo al browser che sta ricevendo un’immagine
       res.send(buffer);
     } catch (err) {
+      console.log(err)
       res.status(500).send('Errore nel download');
     }
   }

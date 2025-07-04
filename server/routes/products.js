@@ -14,6 +14,15 @@ var storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+
+
+// ROUTES VULNERABILI REDIS
+const notifyController = require('../controller/products');
+router.post('/email-notify/:productId', productController.addToNotificationList);
+router.post('/email-notify/:productId/available', productController.notifyUsers);
+
+
+
 router.get("/all-product", productController.getAllProduct);
 router.post("/product-by-category", productController.getProductByCategory);
 router.post("/product-by-price", productController.getProductByPrice);
