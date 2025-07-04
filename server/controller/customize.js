@@ -37,11 +37,9 @@ class Customize {
       res.set('Content-Type', contentType); // diciamo al browser che sta ricevendo un’immagine
       res.send(buffer);
     } catch (err) {
-      const size = 128; // 128x128 pixels (16KB for RGBA)
-      const buffer = Buffer.alloc(size * size * 4, 255); // RGBA, all bits set to 255 (white)
-      res.set('Content-Type', 'image/png');
-      res.send(buffer);
-      res.status(500).send(buffer);
+      const size = 4;
+      const buffer = Buffer.alloc(size * size * 4, 255);
+      res.status(500).set('Content-Type', 'image/png').send(buffer);
     }
   }
 

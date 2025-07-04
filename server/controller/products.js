@@ -104,7 +104,8 @@ class Product {
   }
 
   async postEditProduct(req, res) {
-    let {
+    // campi principali provenienti dal form
+    const {
       pId,
       pName,
       pDescription,
@@ -113,60 +114,69 @@ class Product {
       pCategory,
       pOffer,
       pStatus,
-      pImages,
+      pImages,     // elenco immagini precedenti (es. "img1.jpg,img2.jpg")
+      ...rest      // qualunque altro dato inviato dal client
     } = req.body;
-    let editImages = req.files;
 
-    // Validate other fileds
+    const editImages = req.files;
+
+    /* ─────────────── Validazioni basilari ─────────────── */
     if (
-      !pId |
-      !pName |
-      !pDescription |
-      !pPrice |
-      !pQuantity |
-      !pCategory |
-      !pOffer |
+      !pId ||
+      !pName ||
+      !pDescription ||
+      !pPrice ||
+      !pQuantity ||
+      !pCategory ||
+      !pOffer ||
       !pStatus
     ) {
-      return res.json({ error: "All filled must be required" });
+      return res.json({ error: 'All fields must be provided' });
     }
-    // Validate Name and description
-    else if (pName.length > 255 || pDescription.length > 3000) {
+
+    if (pName.length > 255 || pDescription.length > 3000) {
       return res.json({
-        error: "Name 255 & Description must not be 3000 charecter long",
+        error: 'Name 255 & Description must not be 3000 characters long'
       });
     }
-    // Validate Update Images
-    else if (editImages && editImages.length == 1) {
-      Product.deleteImages(editImages, "file");
-      return res.json({ error: "Must need to provide 2 images" });
-    } else {
-      let editData = {
-        pName,
-        pDescription,
-        pPrice,
-        pQuantity,
-        pCategory,
-        pOffer,
-        pStatus,
-      };
-      if (editImages.length == 2) {
-        let allEditImages = [];
-        for (const img of editImages) {
-          allEditImages.push(img.filename);
-        }
-        editData = { ...editData, pImages: allEditImages };
-        Product.deleteImages(pImages.split(","), "string");
+
+    if (editImages && editImages.length === 1) {
+      // 1 sola immagine non è ammessa
+      Product.deleteImages(editImages, 'file');
+      return res.json({ error: 'Must provide exactly 2 images' });
+    }
+
+    /* ─────────────── Raccolta dati da aggiornare ─────────────── */
+    let editData = {
+      pName,
+      pDescription,
+      pPrice,
+      pQuantity,
+      pCategory,
+      pOffer,
+      pStatus
+    };
+
+    // gestione sostituzione immagini
+    if (editImages && editImages.length === 2) {
+      const allEditImages = editImages.map(img => img.filename);
+      editData = { ...editData, pImages: allEditImages };
+      if (pImages) {
+        Product.deleteImages(pImages.split(','), 'string');
       }
-      try {
-        let editProduct = productModel.findByIdAndUpdate(pId, editData);
-        editProduct.exec((err) => {
-          if (err) console.log(err);
-          return res.json({ success: "Product edit successfully" });
-        });
-      } catch (err) {
-        console.log(err);
-      }
+    }
+
+    /*  Qualunque altro campo ricevuto viene aggiunto
+        al payload di aggiornamento.                     */
+    editData = { ...editData, ...rest };
+
+    /* ─────────────── Salvataggio su MongoDB ─────────────── */
+    try {
+      await productModel.findByIdAndUpdate(pId, editData);
+      return res.json({ success: 'Product edited successfully' });
+    } catch (err) {
+      console.error(err);
+      return res.json({ error: 'Something went wrong' });
     }
   }
 
@@ -354,51 +364,6 @@ class Product {
     }
   }
 
-  async bulkUpload(req, res) {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-
-    const results = [];
-    const separator = detectSeparator(req.file.path);
-
-    fs.createReadStream(req.file.path)
-      .pipe(csv({ separator }))
-      .on("data", (data) => results.push(data))
-      .on("end", async () => {
-        try {
-          for (const row of results) {
-            const urls = [row.imageUrl1, row.imageUrl2].filter(Boolean);
-            const downloaded = [];
-            for (const url of urls) {
-              try {
-                const { buffer } = await customizeController.fetchImageFromUrl(url);
-                const ext = path.extname(new URL(url).pathname) || ".jpg";
-                const filename = `${Date.now()}_${Math.random()
-                  .toString(36)
-                  .substring(2)}${ext}`;
-                fs.writeFileSync(
-                  path.join("public", "uploads", "products", filename),
-                  buffer
-                );
-                downloaded.push(filename);
-              } catch (err) {
-                console.error("Error fetching image", err);
-              }
-            }
-            if (downloaded.length) row.pImages = downloaded;
-            delete row.imageUrl1;
-            delete row.imageUrl2;
-          }
-          await productModel.insertMany(results);
-          fs.unlinkSync(req.file.path);
-          res.status(200).json({ message: "Prodotti caricati con successo!" });
-        } catch (err) {
-          console.error(err);
-          res.status(500).json({ error: "Errore nel caricamento." });
-        }
-      });
-  }
 }
 
 const productController = new Product();

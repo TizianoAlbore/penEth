@@ -23,6 +23,5 @@ router.post("/single-product", productController.getSingleProduct);
 
 router.post("/add-review", productController.postAddReview);
 router.post("/delete-review", productController.deleteReview);
-router.post("/bulk-upload", upload.single("file"), productController.bulkUpload);
 
 module.exports = router;
