@@ -2,9 +2,22 @@ import React, { Fragment, useContext } from "react";
 import { ProductContext } from "./index";
 import AddProductModal from "./AddProductModal";
 import EditProductModal from "./EditProductModal";
+import { getAllProduct } from "./FetchApi";
 
 const ProductMenu = (props) => {
   const { dispatch } = useContext(ProductContext);
+
+  const refreshProducts = async () => {
+    const responseData = await getAllProduct();
+    if (responseData && responseData.Products) {
+      dispatch({
+        type: "fetchProductsAndChangeState",
+        payload: responseData.Products,
+      });
+    }
+  };
+
+
   return (
     <Fragment>
       <div className="col-span-1 flex justify-between items-center">

@@ -139,7 +139,7 @@ const ProductTable = ({ product, deleteProduct, editProduct }) => {
         <td className="p-2 text-center">
           <img
             className="w-12 h-12 object-cover object-center"
-            src={`${apiURL}/uploads/products/${product.pImages[0]}`}
+            src={`/uploads/products/${product.pImages[0]}`}
             alt="pic"
           />
         </td>
@@ -155,7 +155,7 @@ const ProductTable = ({ product, deleteProduct, editProduct }) => {
           )}
         </td>
         <td className="p-2 text-center">{product.pQuantity}</td>
-        <td className="p-2 text-center">{product.pCategory.cName}</td>
+        <td className="p-2 text-center">{product.pCategory?.cName || "Nessuna categoria"}</td>
         <td className="p-2 text-center">{product.pOffer}</td>
         <td className="p-2 text-center">
           {moment(product.createdAt).format("lll")}

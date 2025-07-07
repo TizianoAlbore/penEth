@@ -110,18 +110,20 @@ const ProductDetailsSection = (props) => {
               onClick={(e) =>
                 slideImage("increase", 0, count, setCount, pImages)
               }
-              className={`${count === 0 ? "" : "opacity-25"
-                } cursor-pointer w-20 h-20 object-cover object-center`}
-              src={`${apiURL}/uploads/products/${sProduct.pImages[0]}`}
+              className={`${
+                count === 0 ? "" : "opacity-25"
+              } cursor-pointer w-20 h-20 object-cover object-center`}
+              src={`/uploads/products/${sProduct.pImages[0]}`}
               alt="pic"
             />
             <img
               onClick={(e) =>
                 slideImage("increase", 1, count, setCount, pImages)
               }
-              className={`${count === 1 ? "" : "opacity-25"
-                } cursor-pointer w-20 h-20 object-cover object-center`}
-              src={`${apiURL}/uploads/products/${sProduct.pImages[1]}`}
+              className={`${
+                count === 1 ? "" : "opacity-25"
+              } cursor-pointer w-20 h-20 object-cover object-center`}
+              src={`/uploads/products/${sProduct.pImages[1]}`}
               alt="pic"
             />
           </div>
@@ -129,7 +131,7 @@ const ProductDetailsSection = (props) => {
             <div className="relative">
               <img
                 className="w-full"
-                src={`${apiURL}/uploads/products/${sProduct.pImages[count]}`}
+                src={`/uploads/products/${sProduct.pImages[count]}`}
                 alt="Pic"
               />
               <div className="absolute inset-0 flex justify-between items-center mb-4">

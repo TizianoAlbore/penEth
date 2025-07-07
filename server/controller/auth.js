@@ -2,7 +2,7 @@ const { toTitleCase, validateEmail } = require("../config/function");
 const bcrypt = require("bcryptjs");
 const userModel = require("../models/users");
 const jwt = require("jsonwebtoken");
-const { JWT_SECRET } = require("../config/keys");
+const { RSA_PRIVATE_KEY, RSA_PUBLIC_KEY } = require("../config/keys");
 
 class Auth {
   async isAdmin(req, res) {
@@ -117,11 +117,16 @@ class Auth {
       } else {
         const login = await bcrypt.compare(password, data.password);
         if (login) {
-          const token = jwt.sign(
+            const token = jwt.sign(
             { _id: data._id, role: data.userRole },
-            JWT_SECRET
-          );
-          const encode = jwt.verify(token, JWT_SECRET);
+            RSA_PRIVATE_KEY,
+            {
+              algorithm: "RS256",
+              expiresIn: "1d",
+              issuer: process.env.ISSUER_DOMAIN,
+            }
+            );
+          const encode = jwt.verify(token, RSA_PUBLIC_KEY);
           return res.json({
             token: token,
             user: encode,

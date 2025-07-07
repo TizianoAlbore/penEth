@@ -24,18 +24,19 @@ const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 
+
 // Import Router
 const authRouter = require("./routes/auth");
-
 const categoryRouter = require("./routes/categories");
 const productRouter = require("./routes/products");
-const brainTreeRouter = require("./routes/braintree");
+// const brainTreeRouter = require("./routes/braintree");
 const orderRouter = require("./routes/orders");
 const usersRouter = require("./routes/users");
 const customizeRouter = require("./routes/customize");
 // Import Auth middleware for check user login or not~
 const { loginCheck } = require("./middleware/auth");
 const CreateAllFolder = require("./config/uploadFolderCreateScript");
+const jwksRouter     = require("./routes/jwks");
 
 /* Create All Uploads Folder if not exists | For Uploading Images */
 CreateAllFolder();
@@ -67,6 +68,7 @@ const { connectRedis } = require('./config/redis');
 connectRedis();
 
 // Routes
+app.use("/", jwksRouter);
 app.use("/api", authRouter);
 app.use("/api/user", usersRouter);
 app.use("/api/category", categoryRouter);
@@ -74,7 +76,6 @@ app.use("/api/product", productRouter);
 // app.use("/api", brainTreeRouter);
 app.use("/api/order", orderRouter);
 app.use("/api/customize", customizeRouter);
-
 
 // Run Server
 const PORT = process.env.PORT || 8000;

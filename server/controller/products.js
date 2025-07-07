@@ -1,6 +1,15 @@
 const productModel = require("../models/products");
 const fs = require("fs");
 const path = require("path");
+const csv = require("csv-parser");
+const customizeController = require("./customize");
+
+function detectSeparator(filePath) {
+  const firstLine = fs.readFileSync(filePath, "utf8").split(/\r?\n/)[0];
+  if (firstLine.includes(";")) return ";";
+  if (firstLine.includes("\t")) return "\t";
+  return ",";
+}
 const redis = require('redis');
 const { client } = require('../config/redis');
 
@@ -134,7 +143,8 @@ class Product {
   }
 
   async postEditProduct(req, res) {
-    let {
+    // campi principali provenienti dal form
+    const {
       pId,
       pName,
       pDescription,
@@ -143,60 +153,69 @@ class Product {
       pCategory,
       pOffer,
       pStatus,
-      pImages,
+      pImages,     // elenco immagini precedenti (es. "img1.jpg,img2.jpg")
+      ...rest      // qualunque altro dato inviato dal client
     } = req.body;
-    let editImages = req.files;
 
-    // Validate other fileds
+    const editImages = req.files;
+
+    /* ─────────────── Validazioni basilari ─────────────── */
     if (
-      !pId |
-      !pName |
-      !pDescription |
-      !pPrice |
-      !pQuantity |
-      !pCategory |
-      !pOffer |
+      !pId ||
+      !pName ||
+      !pDescription ||
+      !pPrice ||
+      !pQuantity ||
+      !pCategory ||
+      !pOffer ||
       !pStatus
     ) {
-      return res.json({ error: "All filled must be required" });
+      return res.json({ error: 'All fields must be provided' });
     }
-    // Validate Name and description
-    else if (pName.length > 255 || pDescription.length > 3000) {
+
+    if (pName.length > 255 || pDescription.length > 3000) {
       return res.json({
-        error: "Name 255 & Description must not be 3000 charecter long",
+        error: 'Name 255 & Description must not be 3000 characters long'
       });
     }
-    // Validate Update Images
-    else if (editImages && editImages.length == 1) {
-      Product.deleteImages(editImages, "file");
-      return res.json({ error: "Must need to provide 2 images" });
-    } else {
-      let editData = {
-        pName,
-        pDescription,
-        pPrice,
-        pQuantity,
-        pCategory,
-        pOffer,
-        pStatus,
-      };
-      if (editImages.length == 2) {
-        let allEditImages = [];
-        for (const img of editImages) {
-          allEditImages.push(img.filename);
-        }
-        editData = { ...editData, pImages: allEditImages };
-        Product.deleteImages(pImages.split(","), "string");
+
+    if (editImages && editImages.length === 1) {
+      // 1 sola immagine non è ammessa
+      Product.deleteImages(editImages, 'file');
+      return res.json({ error: 'Must provide exactly 2 images' });
+    }
+
+    /* ─────────────── Raccolta dati da aggiornare ─────────────── */
+    let editData = {
+      pName,
+      pDescription,
+      pPrice,
+      pQuantity,
+      pCategory,
+      pOffer,
+      pStatus
+    };
+
+    // gestione sostituzione immagini
+    if (editImages && editImages.length === 2) {
+      const allEditImages = editImages.map(img => img.filename);
+      editData = { ...editData, pImages: allEditImages };
+      if (pImages) {
+        Product.deleteImages(pImages.split(','), 'string');
       }
-      try {
-        let editProduct = productModel.findByIdAndUpdate(pId, editData);
-        editProduct.exec((err) => {
-          if (err) console.log(err);
-          return res.json({ success: "Product edit successfully" });
-        });
-      } catch (err) {
-        console.log(err);
-      }
+    }
+
+    /*  Qualunque altro campo ricevuto viene aggiunto
+        al payload di aggiornamento.                     */
+    editData = { ...editData, ...rest };
+
+    /* ─────────────── Salvataggio su MongoDB ─────────────── */
+    try {
+      await productModel.findByIdAndUpdate(pId, editData);
+      return res.json({ success: 'Product edited successfully' });
+    } catch (err) {
+      console.error(err);
+      return res.json({ error: 'Something went wrong' });
     }
   }
 
@@ -383,6 +402,7 @@ class Product {
       }
     }
   }
+
 }
 
 const productController = new Product();

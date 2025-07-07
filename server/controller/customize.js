@@ -10,8 +10,6 @@ const path = require('path');
 
 class Customize {
 
-
-  // FUNZIONE INQUINABILE DA PROTOTYPE POLLUTION
   checkIsImage(userHeaders) {
     const defaultHeaders = { 'content-type': '' };
     const headers = merge({}, defaultHeaders, userHeaders);
@@ -19,31 +17,31 @@ class Customize {
       headers['content-type'].startsWith('image/');
   }
 
-  // FUNZIONE CHE PRENDE LE IMMAGINI DA URL PER SSRF
+  async fetchImageFromUrl(url) {
+    const response = await fetch(url);
+    const contentType = response.headers.get('content-type');
+    const buffer = await response.buffer();
+    return { buffer, contentType };
+  }
+
   async getImageFromUrl(req, res) {
     const { url } = req.body;
 
     try {
-      const response = await fetch(url);
-      const contentType = response.headers.get('content-type');
+      const { buffer, contentType } = await this.fetchImageFromUrl(url);
+      // if (!checkIsImage({ 'content-type': contentType })) {
+      // throw new Error('Non è un\'immagine valida');
+      // }
 
-      //if (!checkIsImage({ 'content-type': contentType })) {
-      //  return res.status(400).send('Non è un\'immagine valida');
-      //}
-
-      const buffer = await response.buffer(); // buffer è una rappresentazione binaria dell'immagine
       res.set('Content-Type', contentType); // diciamo al browser che sta ricevendo un’immagine
       res.send(buffer);
     } catch (err) {
-      console.log(err)
-      res.status(500).send('Errore nel download');
+      const size = 4;
+      const buffer = Buffer.alloc(size * size * 4, 255);
+      res.status(500).set('Content-Type', 'image/png').send(buffer);
     }
   }
 
-
-
-
-  
   async getImages(req, res) {
     try {
       let Images = await customizeModel.find({});
