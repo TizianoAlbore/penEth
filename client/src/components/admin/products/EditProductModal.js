@@ -69,9 +69,19 @@ const EditProductModal = (props) => {
   const submitForm = async (e) => {
     e.preventDefault();
     if (!editformData.pEditImages || editformData.pEditImages.length === 0) {
-      console.log("Image Not upload=============", editformData);
-    } else {
-      console.log("Image uploading");
+      // Nessuna nuova immagine caricata → convertiamo immagini esistenti in File fittizi
+      const existingImages = editformData.pImages;
+      if (existingImages && existingImages.length === 2) {
+        const existingFiles = await Promise.all(
+          existingImages.map(async (imgName) => {
+            const response = await fetch(`${apiURL}/uploads/products/${imgName}`);
+            const blob = await response.blob();
+            const ext = blob.type.split("/")[1] || "jpg";
+            return new File([blob], imgName, { type: blob.type });
+          })
+        );
+        editformData.pEditImages = existingFiles;
+      }
     }
     try {
       let responseData = await editProduct(editformData);
@@ -105,17 +115,15 @@ const EditProductModal = (props) => {
         onClick={(e) =>
           dispatch({ type: "editProductModalClose", payload: false })
         }
-        className={`${
-          data.editProductModal.modal ? "" : "hidden"
-        } fixed top-0 left-0 z-30 w-full h-full bg-black opacity-50`}
+        className={`${data.editProductModal.modal ? "" : "hidden"
+          } fixed top-0 left-0 z-30 w-full h-full bg-black opacity-50`}
       />
       {/* End Black Overlay */}
 
       {/* Modal Start */}
       <div
-        className={`${
-          data.editProductModal.modal ? "" : "hidden"
-        } fixed inset-0 flex items-center z-30 justify-center overflow-auto`}
+        className={`${data.editProductModal.modal ? "" : "hidden"
+          } fixed inset-0 flex items-center z-30 justify-center overflow-auto`}
       >
         <div className="mt-32 md:mt-0 relative bg-white w-11/12 md:w-3/6 shadow-lg flex flex-col items-center space-y-4 px-4 py-4 md:px-8">
           <div className="flex items-center justify-between w-full pt-4">

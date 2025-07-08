@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const csv = require("csv-parser");
 const customizeController = require("./customize");
+const _ = require('lodash');
 
 function detectSeparator(filePath) {
   const firstLine = fs.readFileSync(filePath, "utf8").split(/\r?\n/)[0];
@@ -30,7 +31,7 @@ class Product {
 
     res.json({ message: 'Verrai notificato quando il prodotto torna disponibile.' });
   };
-  
+
   async notifyUsers(req, res) {
     const { productId } = req.params;
     const redisKey = `notify:${productId}`;
@@ -51,7 +52,7 @@ class Product {
 
 
 
-  
+
   static deleteImages(images, mode) {
     const basePath = path.resolve(__dirname, "..", "public", "uploads", "products") + path.sep;
     console.log(basePath);
@@ -142,7 +143,16 @@ class Product {
     }
   }
 
-  async postEditProduct(req, res) {
+
+
+
+
+  async postEditProduct_CORRECT(req, res) {
+    console.log(req.body);
+    // VERSIONE VULNERABILE:
+    const dataReceived = _.merge({}, req.body);
+    console.log('Polluted? logging \'{}.hostname --> ', {}.hostname);
+
     // campi principali provenienti dal form
     const {
       pId,
@@ -153,8 +163,7 @@ class Product {
       pCategory,
       pOffer,
       pStatus,
-      pImages,     // elenco immagini precedenti (es. "img1.jpg,img2.jpg")
-      ...rest      // qualunque altro dato inviato dal client
+      pImages     // elenco immagini precedenti (es. "img1.jpg,img2.jpg")
     } = req.body;
 
     const editImages = req.files;
@@ -205,10 +214,6 @@ class Product {
       }
     }
 
-    /*  Qualunque altro campo ricevuto viene aggiunto
-        al payload di aggiornamento.                     */
-    editData = { ...editData, ...rest };
-
     /* ─────────────── Salvataggio su MongoDB ─────────────── */
     try {
       await productModel.findByIdAndUpdate(pId, editData);
@@ -218,6 +223,48 @@ class Product {
       return res.json({ error: 'Something went wrong' });
     }
   }
+
+  async postEditProduct(req, res) {
+    console.log('req.body: \n', req.body);
+    /* ─────────────── Validazioni basilari ─────────────── */
+    if (
+      !req.body.pId ||
+      !req.body.pName ||
+      !req.body.pDescription ||
+      !req.body.pPrice ||
+      !req.body.pQuantity ||
+      !req.body.pCategory ||
+      !req.body.pOffer ||
+      !req.body.pStatus
+    ) {
+      return res.json({ error: 'All fields must be provided' });
+    }
+    /* ─────────────── Merge vulnerabile ─────────────── */
+    let uploadedImages = (req.files || []).map(file => file.filename);
+    let editData = _.merge({}, req.body, { pImages: uploadedImages });
+    
+    // debug only
+    console.log('Polluted? logging \'{}.hostname --> ', {}.hostname);
+
+    /* ─────────────── Upload MongoDB ─────────────── */
+    try {
+      let editProduct = productModel.findByIdAndUpdate(req.body.pId, editData);
+      editProduct.exec((err) => {
+        if (err) {
+          console.log(err);
+          return res.json({ error: "Something went wrong" });
+        }
+        return res.json({ success: "Product edited successfully" });
+      });
+    } catch (err) {
+      console.log(err);
+      return res.json({ error: "Internal server error" });
+    }
+  }
+
+
+
+
 
   async getDeleteProduct(req, res) {
     let { pId } = req.body;

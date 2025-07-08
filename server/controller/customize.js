@@ -5,7 +5,6 @@ const orderModel = require("../models/orders");
 const userModel = require("../models/users");
 const customizeModel = require("../models/customize");
 const fetch = require('node-fetch');
-const merge = require('lodash.merge');
 const path = require('path');
 
 class Customize {
