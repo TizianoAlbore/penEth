@@ -13,7 +13,8 @@ export const getImageFromUrl = async (url) => {
       { url },
       { responseType: 'arraybuffer' }
     );
-    const blob = new Blob([res.data], { type: res.headers['content-type'] });
+    const contentType = res.headers['content-type'] || 'image/jpeg';
+    const blob = new Blob([res.data], { type: contentType });
     const imageUrl = URL.createObjectURL(blob);
     return imageUrl;
   } catch (error) {

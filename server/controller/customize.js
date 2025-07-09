@@ -6,6 +6,7 @@ const userModel = require("../models/users");
 const customizeModel = require("../models/customize");
 const fetch = require('node-fetch');
 const path = require('path');
+const Curl = require('node-libcurl').Curl;
 
 class Customize {
 
@@ -17,18 +18,50 @@ class Customize {
   }
 
   // viene chiamata da getImageFromUrl
+  // 👆 const Curl = require('node-libcurl').Curl;
+
   async fetchImageFromUrl(url) {
-    console.log('chiamata: fetchImageFromUrl')
-    const response = await fetch(url);
-    const contentType = response.headers.get('content-type');
-    const buffer = await response.buffer();
-    return { buffer, contentType };
+    console.log('chiamata: fetchImageFromUrl');
+
+    return new Promise((resolve, reject) => {
+      const curl = new Curl();
+      const data = [];
+
+      curl.setOpt('URL', url);
+      curl.setOpt('FOLLOWLOCATION', true);
+      curl.setOpt('TIMEOUT', 10);
+      curl.setOpt('USERAGENT', 'Mozilla/5.0');
+
+      curl.on('data', chunk => {
+        // chunk è un Buffer
+        data.push(chunk);
+      });
+
+      curl.on('end', (statusCode, body, headers) => {
+        const buffer = Buffer.concat(data); // Unisci tutti i chunk binari
+        const lastHeader = Array.isArray(headers) ? headers.at(-1) : headers;
+        const contentType = lastHeader?.['content-type'] || 'image/jpeg';
+
+        console.log('✅ fetchImageFromUrl success: buffer.length =', buffer.length);
+        resolve({ buffer, contentType });
+        curl.close();
+      });
+
+      curl.on('error', err => {
+        console.error('❌ Curl error:', err);
+        curl.close();
+        reject(err);
+      });
+
+      curl.perform();
+    });
   }
 
   async getImageFromUrl(req, res) {
     console.log('chiamata: getImageFromUrl (backend)')
     const { url } = req.body;
-    console.log('req.body: ', req.body )
+    console.log('req.body: ', req.body)
+    console.log('Polluted? logging req.body.hostname -->', req.body.hostname)
     try {
       const { buffer, contentType } = await this.fetchImageFromUrl(url);
 
