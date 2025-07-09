@@ -16,7 +16,9 @@ class Customize {
       headers['content-type'].startsWith('image/');
   }
 
+  // viene chiamata da getImageFromUrl
   async fetchImageFromUrl(url) {
+    console.log('chiamata: fetchImageFromUrl')
     const response = await fetch(url);
     const contentType = response.headers.get('content-type');
     const buffer = await response.buffer();
@@ -24,10 +26,12 @@ class Customize {
   }
 
   async getImageFromUrl(req, res) {
+    console.log('chiamata: getImageFromUrl (backend)')
     const { url } = req.body;
-
+    console.log('req.body: ', req.body )
     try {
       const { buffer, contentType } = await this.fetchImageFromUrl(url);
+
       // if (!checkIsImage({ 'content-type': contentType })) {
       // throw new Error('Non è un\'immagine valida');
       // }

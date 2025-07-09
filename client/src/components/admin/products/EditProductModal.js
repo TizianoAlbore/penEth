@@ -1,6 +1,6 @@
 import React, { Fragment, useContext, useState, useEffect } from "react";
 import { ProductContext } from "./index";
-import { editProduct, getAllProduct } from "./FetchApi";
+import { editProduct, getAllProduct, getImageFromUrl} from "./FetchApi";
 import { getAllCategory } from "../categories/FetchApi";
 const apiURL = process.env.REACT_APP_API_URL;
 
@@ -107,6 +107,46 @@ const EditProductModal = (props) => {
       console.log(error);
     }
   };
+
+
+  const [fData, setFdata] = useState({
+      imageUrl: "",
+      success: false,
+      error: false,
+    });
+
+  const handleClick = (event) => {
+      event.preventDefault()
+      console.log("click handled")
+      fetchImageAndDispatch(fData.imageUrl, dispatch);
+    };
+  
+    // FUNZIONE CHE CHIAMA getImageFromUrl DEFINITA NEL FILE FetchApi.js
+    // SERIVRA' A FARE SSRF
+    const fetchImageAndDispatch = async (url, dispatch) => {
+      console.log("fetchImageAndDispatch called successfully")
+      try {
+        const imageUrl = await getImageFromUrl(url); 
+        setTimeout(() => {
+          dispatch({
+            type: 'addImageToGallery',
+            payload: imageUrl,
+          });
+          const img = document.createElement('img');
+  
+          img.src = imageUrl;
+          img.style.maxWidth = '200px';
+          img.style.margin = '10px';
+  
+          const galleryDiv = document.getElementById('gallery_edit');
+          if (galleryDiv) {
+            galleryDiv.appendChild(img);
+          }
+        }, 1000);
+      } catch (errorMessage) {
+        alert(`Errore: ${errorMessage}`);
+      }
+    };
 
   return (
     <Fragment>
@@ -247,46 +287,44 @@ const EditProductModal = (props) => {
                 multiple
               />
 
-              {/* Fetch image from URL */}
-              <div className="flex mt-2">
-                <input
-                  value={editformData.imageUrl}
-                  onChange={(e) =>
-                    setEditformdata({
-                      ...editformData,
-                      imageUrl: e.target.value,
-                    })
-                  }
-                  type="text"
-                  className="px-4 py-2 border focus:outline-none flex-1"
-                  placeholder="Enter image URL"
-                />
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(editformData.imageUrl);
-                      const blob = await response.blob();
-                      const ext = blob.type.split("/")[1] || "jpg";
-                      const file = new File(
-                        [blob],
-                        `url_${Date.now()}.${ext}`,
-                        { type: blob.type }
-                      );
-                      setEditformdata({
-                        ...editformData,
-                        pEditImages: [...editformData.pEditImages, file],
-                        imageUrl: "",
-                      });
-                    } catch (err) {
-                      console.error(err);
+              {/* 🔎 FETCH IMAGE FROM URL */}
+              {/* Component added to allow SSRF */}
+              <div className="flex flex-col mt-4">
+                <label htmlFor="image">🔎 Fetch image from URL *</label>
+                <span className="text-gray-600 text-xs">Must need 2 images</span>
+
+                <div className="flex">
+                  <input
+                    value={fData.imageUrl}
+                    onChange={(e) =>
+                      setFdata({
+                        ...fData,
+                        error: false,
+                        success: false,
+                        imageUrl: e.target.value,
+                      })
                     }
-                  }}
-                  className="ml-2 px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
-                >
-                  Search
-                </button>
+                    type="text"
+                    className="px-4 py-2 border focus:outline-none flex-1"
+                    placeholder="Enter image URL"
+                  />
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      handleClick(e)
+                    }}
+                    className="ml-2 px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                  >
+                    Search
+                  </button>
+                </div>
+                <div id="gallery_edit"></div>
               </div>
+
+
+
+
+
 
               {editformData.pEditImages && editformData.pEditImages.length > 0 && (
                 <div className="flex space-x-2 mt-2">
