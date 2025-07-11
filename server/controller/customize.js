@@ -81,11 +81,38 @@ class Customize {
 
   // gopher://redis:6379/_%0D%0ASET%20evilkey4%20evilvalue%0D%0A
   // https://picsum.photos/200
+
   async getImageFromUrl(req, res) {
     console.log('📥 Richiesta ricevuta: getImageFromUrl (image fetch)');
     const { url } = req.body;
     console.log('🔗 URL ricevuto:', url);
 
+    // LISTA DI HOST CONSENTITI
+    const allowedHosts = {
+      'picsum.photos': true,
+      'api.example.com': true
+    };
+    console.log('allowed hosts: ', allowedHosts);
+
+    // VERIFICA CHE UN HOST E' NELLA LISTA
+    function isAllowedHost(hostname) {
+      console.log('checking ', hostname)
+      console.log('result: ', allowedHosts[hostname] === true)
+      return allowedHosts[hostname] === true;
+    }
+
+    // ESEGUI VERIFICA SU URL RICEVUTO
+    let hostname;
+    try {
+      hostname = new URL(url).hostname;
+    } catch {
+      return res.status(400).json({ success: false, error: 'URL non valido' });
+    }
+    if (!isAllowedHost(hostname)) {
+      return res.status(403).json({ success: false, error: 'Host non consentito dalla whitelist' });
+    }
+
+    // ESEGUI CURL DEL SITO RICHIESTO
     const curl = new Curl();
     const chunks = [];
 
