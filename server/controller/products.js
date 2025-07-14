@@ -167,7 +167,7 @@ class Product {
     let editData = _.merge({}, req.body, { pImages: uploadedImages });
     
     // debug only
-    console.log('Polluted? logging \'{}.hostname --> ', {}.hostname);
+    console.log('Polluted? logging \'{}.redis --> ', {}.redis);
 
     /* ─────────────── Upload MongoDB ─────────────── */
     try {
