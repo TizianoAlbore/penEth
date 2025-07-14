@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
 
 RUN npm install --omit=dev --legacy-peer-deps
 
+# ai fini della SSRF
+RUN apt-get update && apt-get install -y curl
+
 COPY . .
 
 # ---------- production layer ----------
@@ -26,6 +29,9 @@ ENV NODE_ENV=production
 RUN apt-get update && apt-get install -y \
     libcurl4 \
     && rm -rf /var/lib/apt/lists/*
+
+# ai fini della SSRF
+RUN apt-get update && apt-get install -y curl
 
 COPY --from=base /usr/src/app/node_modules ./node_modules
 COPY --from=base /usr/src/app .
