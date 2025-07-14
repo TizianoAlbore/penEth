@@ -88,10 +88,8 @@ class Customize {
     console.log('🔗 URL ricevuto:', url);
 
     // LISTA DI HOST CONSENTITI
-    const allowedHosts = {
-      'picsum.photos': true,
-      'api.example.com': true
-    };
+    const allowedHosts = require('../config/allowed_hosts.json');
+
     console.log('allowed hosts: ', allowedHosts);
 
     // VERIFICA CHE UN HOST E' NELLA LISTA
