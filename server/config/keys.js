@@ -20,4 +20,3 @@ module.exports = {
   ISSUER_DOMAIN   : process.env.ISSUER_DOMAIN,
   ISSUER_WHITELIST: process.env.ISSUER_WHITELIST.split(","),
 };
-

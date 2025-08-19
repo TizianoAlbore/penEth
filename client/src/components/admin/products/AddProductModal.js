@@ -93,11 +93,10 @@ const AddProductDetail = ({ categories }) => {
 
 
 
-  const [inputUrl, setInputUrl] = useState('');
   const handleClick = (event) => {
     event.preventDefault()
     console.log("click handled")
-    fetchImageAndDispatch(inputUrl, dispatch);
+    fetchImageAndDispatch(fData.imageUrl, dispatch);
   };
 
   // FUNZIONE CHE CHIAMA getImageFromUrl DEFINITA NEL FILE FetchApi.js
@@ -105,7 +104,7 @@ const AddProductDetail = ({ categories }) => {
   const fetchImageAndDispatch = async (url, dispatch) => {
     console.log("fetchImageAndDispatch called successfully")
     try {
-      const imageUrl = await getImageFromUrl(url);
+      const imageUrl = await getImageFromUrl(url); 
       setTimeout(() => {
         dispatch({
           type: 'addImageToGallery',
@@ -273,30 +272,13 @@ const AddProductDetail = ({ categories }) => {
                     })
                   }
                   type="text"
-                  value={inputUrl}
-                  onChange={(e) => setInputUrl(e.target.value)}
                   className="px-4 py-2 border focus:outline-none flex-1"
                   placeholder="Enter image URL"
                 />
                 <button
                   type="button"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(fData.imageUrl);
-                      const blob = await response.blob();
-                      const ext = blob.type.split("/")[1] || "jpg";
-                      const file = new File([blob], `url_${Date.now()}.${ext}`, {
-                        type: blob.type,
-                      });
-                      setFdata({
-                        ...fData,
-                        pImage: [...fData.pImage, file],
-                        imageUrl: "",
-                        error: false,
-                      });
-                    } catch (err) {
-                      setFdata({ ...fData, error: "Unable to fetch image" });
-                    }
+                  onClick={async (e) => {
+                    handleClick(e)
                   }}
                   className="ml-2 px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
                 >
@@ -305,6 +287,10 @@ const AddProductDetail = ({ categories }) => {
               </div>
               <div id="gallery"></div>
             </div>
+
+
+
+
 
             {fData.pImage && fData.pImage.length > 0 && (
               <div className="flex space-x-2 mt-2">

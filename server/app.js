@@ -63,6 +63,10 @@ app.use(express.static("public"));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+// Redis
+const { connectRedis } = require('./config/redis');
+connectRedis();
+
 // Routes
 app.use("/", jwksRouter);
 app.use("/api", authRouter);
