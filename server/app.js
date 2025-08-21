@@ -42,6 +42,7 @@ const jwksRouter     = require("./routes/jwks");
 CreateAllFolder();
 
 // Database Connection
+console.log("Connecting to MongoDB...");
 mongoose
   .connect(process.env.DATABASE, {
     useNewUrlParser: true,
@@ -53,7 +54,7 @@ mongoose
       "==============Mongodb Database Connected Successfully=============="
     )
   )
-  .catch((err) => console.log("Database Not Connected !!!"));
+  .catch((err) => console.log("Database Not Connected !!!", err));
 
 // Middleware
 app.use(morgan("dev"));
