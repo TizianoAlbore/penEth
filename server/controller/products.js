@@ -11,9 +11,47 @@ function detectSeparator(filePath) {
   if (firstLine.includes("\t")) return "\t";
   return ",";
 }
+const redis = require('redis');
+const { client } = require('../config/redis');
 
 
 class Product {
+
+
+
+  // REDIS VULNERABLE FUNCTIONS: receive email when product is available
+  async addToNotificationList(req, res) {
+    const { productId } = req.params;
+    const { email } = req.body;
+
+    if (!email) return res.status(400).json({ error: 'Email obbligatoria' });
+
+    const redisKey = `notify:${productId}`;
+    await client.rPush(redisKey, email);
+
+    res.json({ message: 'Verrai notificato quando il prodotto torna disponibile.' });
+  };
+
+  async notifyUsers(req, res) {
+    const { productId } = req.params;
+    const redisKey = `notify:${productId}`;
+
+    const emails = await client.lRange(redisKey, 0, -1);
+    if (emails.length === 0) {
+      return res.json({ message: 'Nessun utente da notificare.' });
+    }
+
+    // Simulazione: stampa a log (oppure potresti usare nodemailer)
+    emails.forEach(email => {
+      console.log(`📬 Notifica inviata a: ${email} per il prodotto ${productId}`);
+    });
+
+    await client.del(redisKey); // Svuota la list
+    res.json({ message: 'Notifiche inviate', total: emails.length });
+  };
+
+
+
 
   static deleteImages(images, mode) {
     const basePath = path.resolve(__dirname, "..", "public", "uploads", "products") + path.sep;
@@ -129,7 +167,7 @@ class Product {
     let editData = _.merge({}, req.body, { pImages: uploadedImages });
     
     // debug only
-    // console.log('Polluted? logging \'{}.redis --> ', {}.redis);
+    console.log('Polluted? logging \'{}.redis --> ', {}.redis);
 
     /* ─────────────── Upload MongoDB ─────────────── */
     try {
